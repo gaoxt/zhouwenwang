@@ -7,6 +7,7 @@
 - 🎯 传承千年占卜智慧，结合AI技术提供深度解读
 - 🔮 支持六爻、奇门遁甲、手相分析等经典占卜术
 - 👨‍🏫 6位历史名家虚拟大师，不同风格的专业解读
+- 🔒 后端API代理服务，保护API密钥安全
 - 📱 响应式设计，支持桌面端和移动端
 - 💾 完整的占卜历史管理功能
 
@@ -50,6 +51,7 @@
 ## 🔧 技术栈
 
 - **前端**: React 19 + TypeScript + Vite 6
+- **后端**: Node.js + Express (API代理服务)
 - **样式**: Tailwind CSS 4.1
 - **状态管理**: Zustand
 - **AI服务**: Google Gemini API
@@ -83,7 +85,29 @@ npm install
 
 **配置方式（二选一）：**
 
-**方式一：代码预配置（推荐）**
+**方式一：启动后端代理服务（推荐，安全）**
+
+```bash
+# 进入后端目录
+cd backend
+
+# 安装依赖
+npm install
+
+# 配置环境变量
+cp env.example .env
+# 编辑 .env 文件，设置 GEMINI_API_KEY=你的API密钥
+
+# 启动后端服务
+npm start
+```
+
+后端服务启动在 `http://localhost:3001`，API密钥安全保存在服务器端。
+
+**方式二：直接使用API密钥**
+
+在前端直接配置API密钥（简单自用）：
+
 ```typescript
 // 编辑 src/masters/config.ts
 export const API_CONFIG = {
@@ -91,11 +115,25 @@ export const API_CONFIG = {
 };
 ```
 
-**方式二：设置页面配置**
-- 启动应用后进入设置页面
-- 在"API配置"中输入密钥
+或在设置页面中输入密钥。
 
 ### 4. 启动开发环境
+
+**如果使用后端代理服务：**
+
+```bash
+# 1. 启动后端服务（新终端窗口）
+cd backend
+npm start
+
+# 2. 启动前端服务（另一个终端窗口）
+npm run dev
+
+# 或启动 Electron 桌面版本
+npm run electron-dev
+```
+
+**如果直接使用API密钥：**
 
 ```bash
 # Web 版本
@@ -174,23 +212,33 @@ npm run dist-clean
 
 ```
 zhouwenwang-divination/
-├── public/                 # 静态资源
-├── src/                    # 源代码
-│   ├── components/         # React 组件
-│   ├── games/             # 占卜模块
-│   ├── masters/           # AI大师系统
-│   └── core/              # 核心功能
-├── electron/              # Electron 主进程
-├── release/               # 构建输出（不提交到git）
-└── dist/                  # Web构建输出
+├── backend/               # 后端API代理服务
+│   ├── server.js         # Express服务器
+│   ├── env.example       # 环境变量示例
+│   └── package.json      # 后端依赖
+├── public/               # 静态资源
+├── src/                  # 前端源代码
+│   ├── components/       # React 组件
+│   ├── games/           # 占卜模块
+│   ├── masters/         # AI大师系统
+│   └── core/            # 核心功能
+├── electron/            # Electron 主进程
+├── release/             # 构建输出（不提交到git）
+└── dist/                # Web构建输出
 ```
 
 ## 📋 可用脚本
 
 ```bash
-# 开发
+# 前端开发
 npm run dev              # 启动 Web 开发服务器
 npm run electron-dev     # 启动 Electron 开发环境
+
+# 后端服务
+cd backend
+npm install             # 安装后端依赖
+npm start               # 启动后端API代理服务
+npm run dev             # 启动后端开发模式（自动重启）
 
 # 构建
 npm run build           # 构建 Web 版本
