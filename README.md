@@ -10,6 +10,43 @@
 - 📱 响应式设计，支持桌面端和移动端
 - 💾 完整的占卜历史管理功能
 
+## 📱 项目展示
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="zhouwenwang-divination/public/img/home.png" alt="主页界面" width="400"/>
+      <br/>
+      <b>🏠 主页界面</b>
+      <br/>
+      <sub>简洁优雅的主页设计，提供多种占卜方式选择</sub>
+    </td>
+    <td align="center">
+      <img src="zhouwenwang-divination/public/img/liuyao.png" alt="六爻占卜界面" width="400"/>
+      <br/>
+      <b>🔮 六爻占卜</b>
+      <br/>
+      <sub>传统六爻占卜，包含摇卦动画和详细解读</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="zhouwenwang-divination/public/img/qimen.png" alt="奇门遁甲界面" width="400"/>
+      <br/>
+      <b>⭐ 奇门遁甲</b>
+      <br/>
+      <sub>专业奇门遁甲分析，提供时局预测和策略建议</sub>
+    </td>
+    <td align="center">
+      <img src="zhouwenwang-divination/public/img/palmistry.png" alt="手相分析界面" width="400"/>
+      <br/>
+      <b>✋ 手相分析</b>
+      <br/>
+      <sub>AI驱动的手相识别分析，深度解读手纹命理</sub>
+    </td>
+  </tr>
+</table>
+
 ## 🔧 技术栈
 
 - **前端**: React 19 + TypeScript + Vite 6
