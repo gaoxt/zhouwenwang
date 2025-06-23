@@ -5,12 +5,20 @@
 
 import React, { useState, useEffect, Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { Settings, X, Key, Trash2, Save, Download, Upload, AlertTriangle, User } from 'lucide-react';
+import { Settings, X, Key, Trash2, Save, Download, Upload, AlertTriangle, User, Check } from 'lucide-react';
 import { useStore, useMaster } from '../../core/store';
-import { validateApiKey, clearAllData, exportSettings, importSettings } from '../../core/settings';
+import { clearAllData, exportSettings, importSettings, exportDivinationRecords } from '../../core/settings';
 import { getStorageInfo } from '../../core/storage';
 import { MasterSelector } from '../../masters/MasterSelector';
-import { API_CONFIG, hasValidApiKey } from '../../masters/config';
+import { API_CONFIG, hasValidApiKey, isValidApiKeyFormat } from '../../masters/config';
+import { validateGeminiApiKey } from '../../masters/service';
+import { 
+  baseStyles, 
+  presetStyles, 
+  textStyles, 
+  colors,
+  styleUtils
+} from '../../styles/modalStyles';
 
 interface SettingsModalProps {
   /** 是否显示模态框 */
@@ -29,18 +37,22 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   
   // 本地状态
   const [apiKey, setApiKey] = useState(settings.apiKey);
+  const [serverUrl, setServerUrl] = useState(settings.serverUrl || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [isTestingServer, setIsTestingServer] = useState(false);
+  const [isTestingApiKey, setIsTestingApiKey] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
   const [storageInfo, setStorageInfo] = useState(getStorageInfo());
   const [activeTab, setActiveTab] = useState<'api' | 'master' | 'data'>('api');
 
   // 当设置变化时更新本地状态
   useEffect(() => {
     setApiKey(settings.apiKey);
+    setServerUrl(settings.serverUrl || '');
     setStorageInfo(getStorageInfo());
-  }, [settings.apiKey]);
+  }, [settings.apiKey, settings.serverUrl]);
 
   // 清除消息
   const clearMessages = () => {
@@ -49,38 +61,164 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   /**
-   * 保存API密钥
+   * 内部保存API配置函数
    */
-  const handleSaveApiKey = async () => {
+  const saveApiConfigInternal = async (successMessage?: string): Promise<boolean> => {
     try {
-      setIsLoading(true);
-      clearMessages();
-
       const trimmedKey = apiKey.trim();
+      const trimmedServerUrl = serverUrl.trim();
 
       // 验证API密钥格式
-      if (trimmedKey && !validateApiKey(trimmedKey)) {
+      if (trimmedKey && !isValidApiKeyFormat(trimmedKey)) {
         setError('API密钥格式无效，请检查输入');
-        return;
+        return false;
+      }
+
+      // 验证服务器URL格式
+      if (trimmedServerUrl) {
+        try {
+          new URL(trimmedServerUrl);
+        } catch {
+          setError('服务器URL格式无效，请输入完整的HTTP/HTTPS地址');
+          return false;
+        }
       }
 
       // 更新设置
-      const result = await updateSettings({ apiKey: trimmedKey });
+      const result = await updateSettings({ 
+        apiKey: trimmedKey,
+        serverUrl: trimmedServerUrl || undefined
+      });
       
       if (!result.success) {
-        setError(result.error || '保存API密钥失败');
-        return;
+        setError(result.error || '保存配置失败');
+        return false;
       }
 
-      setSuccess('API密钥已保存');
+      setSuccess(successMessage || 'API配置已保存');
       
       // 2秒后清除成功消息
       setTimeout(() => {
         setSuccess(null);
       }, 2000);
+
+      return true;
     } catch (error) {
-      console.error('保存API密钥失败:', error);
-      setError('保存API密钥时发生未知错误');
+      console.error('保存API配置失败:', error);
+      setError('保存API配置时发生未知错误');
+      return false;
+    }
+  };
+
+  /**
+   * 测试API密钥
+   */
+  const handleTestApiKey = async () => {
+    try {
+      setIsTestingApiKey(true);
+      clearMessages();
+
+      const trimmedKey = apiKey.trim();
+      
+      if (!trimmedKey) {
+        setError('请输入API密钥');
+        return;
+      }
+
+      // 使用service中的统一验证函数
+      await validateGeminiApiKey(trimmedKey);
+      
+      setSuccess('API密钥验证成功！正在保存...');
+      console.log('API密钥验证通过');
+      
+      // 验证成功后自动保存API配置
+      const saved = await saveApiConfigInternal('API密钥验证成功 已配置');
+      if (!saved) {
+        // 如果保存失败，覆盖错误信息为更友好的提示
+        setError('API密钥验证成功，但自动保存失败');
+      }
+    } catch (error) {
+      console.error('API密钥验证失败:', error);
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('API密钥验证失败');
+      }
+    } finally {
+      setIsTestingApiKey(false);
+    }
+  };
+
+  /**
+   * 测试服务器连接
+   */
+  const handleTestServer = async () => {
+    try {
+      setIsTestingServer(true);
+      clearMessages();
+
+      const trimmedServerUrl = serverUrl.trim();
+      
+      if (!trimmedServerUrl) {
+        setError('请输入服务器URL');
+        return;
+      }
+
+      // 测试服务器健康状态
+      const response = await fetch(`${trimmedServerUrl.replace(/\/$/, '')}/api/health`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(10000) // 10秒超时
+      });
+      
+      if (!response.ok) {
+        throw new Error(`服务器响应错误: HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.status === 'ok') {
+        setSuccess('服务器连接测试成功！正在保存...');
+        
+        // 连接成功后自动保存API配置
+        const saved = await saveApiConfigInternal('服务器连接测试成功 已配置');
+        if (!saved) {
+          // 如果保存失败，覆盖错误信息为更友好的提示
+          setError('服务器连接成功，但自动保存失败');
+        }
+      } else {
+        setError('服务器状态异常');
+      }
+    } catch (error) {
+      console.error('服务器连接测试失败:', error);
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          setError('连接超时，请检查服务器URL或网络连接');
+        } else {
+          setError(`连接失败: ${error.message}`);
+        }
+      } else {
+        setError('服务器连接测试失败');
+      }
+    } finally {
+      setIsTestingServer(false);
+    }
+  };
+
+  /**
+   * 保存API配置（包括API密钥和服务器URL）
+   */
+  const handleSaveApiConfig = async () => {
+    try {
+      setIsLoading(true);
+      clearMessages();
+
+      await saveApiConfigInternal();
+    } catch (error) {
+      console.error('保存API配置失败:', error);
+      setError('保存API配置时发生未知错误');
     } finally {
       setIsLoading(false);
     }
@@ -93,12 +231,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     try {
       clearMessages();
       setSelectedMaster(master);
-      setSuccess(`已选择大师：${master.name}`);
-      
-      // 2秒后清除成功消息
-      setTimeout(() => {
-        setSuccess(null);
-      }, 2000);
+      // 不再显示成功提示消息
     } catch (error) {
       console.error('选择大师失败:', error);
       setError('选择大师时发生错误');
@@ -139,7 +272,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       setStorageInfo(getStorageInfo());
       
       setSuccess('所有数据已清除成功！');
-      setShowClearConfirm(false);
       
       console.log('数据清除操作完成');
       
@@ -156,16 +288,17 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   };
 
   /**
-   * 导出设置
+   * 导出所有占卜记录
    */
-  const handleExportSettings = async () => {
+  const handleExportRecords = async () => {
     try {
+      setIsLoading(true);
       clearMessages();
       
-      const result = exportSettings();
+      const result = await exportDivinationRecords();
       
       if (!result.success || !result.data) {
-        setError(result.error || '导出设置失败');
+        setError(result.error || '导出占卜记录失败');
         return;
       }
 
@@ -174,323 +307,270 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `zhouwenwang-settings-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `zhouwenwang-records-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      setSuccess('设置已导出');
+      setSuccess('占卜记录已导出');
       setTimeout(() => setSuccess(null), 2000);
     } catch (error) {
-      console.error('导出设置失败:', error);
-      setError('导出设置时发生未知错误');
+      console.error('导出占卜记录失败:', error);
+      setError('导出占卜记录时发生未知错误');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  /**
-   * 导入设置
-   */
-  const handleImportSettings = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      clearMessages();
-      
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      const text = await file.text();
-      const result = importSettings(text);
-      
-      if (!result.success || !result.data) {
-        setError(result.error || '导入设置失败');
-        return;
-      }
-
-      // 更新store状态
-      await updateSettings(result.data);
-      
-      setSuccess('设置已导入');
-      setTimeout(() => setSuccess(null), 2000);
-    } catch (error) {
-      console.error('导入设置失败:', error);
-      setError('导入设置时发生未知错误');
-    }
-    
-    // 重置文件输入
-    event.target.value = '';
-  };
+  // 如果不打开则不渲染
+  if (!isOpen) return null;
 
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black bg-opacity-75" />
-        </Transition.Child>
-
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
+    <div style={baseStyles.modalOverlay} onClick={onClose}>
+      <div 
+        style={baseStyles.modalContainer('500px')}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 标题栏 */}
+        <div style={baseStyles.modalHeader}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'white' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                padding: '8px',
+                background: 'rgba(255, 153, 0, 0.2)',
+                borderRadius: '8px'
+              }}>
+                <Settings className="h-5 w-5" style={{ color: colors.primary }} />
+              </div>
+              <span style={textStyles.title}>应用设置</span>
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                color: colors.gray[400],
+                background: 'none',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              {...styleUtils.createHoverHandlers(
+                { color: colors.gray[400], backgroundColor: 'transparent' },
+                { color: colors.white, backgroundColor: 'rgba(128, 128, 128, 0.5)' }
+              )}
             >
-              <Dialog.Panel className="w-full max-w-4xl transform overflow-hidden rounded-xl bg-black border border-[#333333] p-6 text-left align-middle shadow-xl transition-all">
-                <Dialog.Title
-                  as="h3"
-                  className="text-lg font-medium leading-6 text-white flex items-center justify-between"
-                >
-                  <div className="flex items-center space-x-2">
-                    <Settings className="h-5 w-5" />
-                    <span>应用设置</span>
-                  </div>
-                  <button
-                    onClick={onClose}
-                    className="text-[#CCCCCC] hover:text-white transition-colors"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </Dialog.Title>
-
-                {/* 标签页导航 */}
-                <div className="mt-4 border-b border-[#333333]">
-                  <nav className="flex space-x-8">
-                    <button
-                      onClick={() => setActiveTab('api')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                        activeTab === 'api'
-                          ? 'border-[#FF9900] text-[#FF9900]'
-                          : 'border-transparent text-[#CCCCCC] hover:text-white hover:border-[#666666]'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Key className="h-4 w-4" />
-                        <span>API配置</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('master')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                        activeTab === 'master'
-                          ? 'border-[#FF9900] text-[#FF9900]'
-                          : 'border-transparent text-[#CCCCCC] hover:text-white hover:border-[#666666]'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4" />
-                        <span>大师选择</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('data')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                        activeTab === 'data'
-                          ? 'border-[#FF9900] text-[#FF9900]'
-                          : 'border-transparent text-[#CCCCCC] hover:text-white hover:border-[#666666]'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Trash2 className="h-4 w-4" />
-                        <span>数据管理</span>
-                      </div>
-                    </button>
-                  </nav>
-                </div>
-
-                <div className="mt-6 space-y-6">
-                  {/* 错误和成功消息 */}
-                  {error && (
-                    <div className="bg-red-900/20 border border-red-500 text-red-300 px-3 py-2 rounded-lg text-sm">
-                      {error}
-                    </div>
-                  )}
-                  
-                  {success && (
-                    <div className="bg-green-900/20 border border-green-500 text-green-300 px-3 py-2 rounded-lg text-sm">
-                      {success}
-                    </div>
-                  )}
-
-                  {/* API配置标签页 */}
-                  {activeTab === 'api' && (
-                    <div className="space-y-6">
-                      {/* API密钥配置状态 */}
-                      {API_CONFIG.GEMINI_API_KEY && API_CONFIG.GEMINI_API_KEY.trim().length > 0 && (
-                        <div className="bg-green-900/20 border border-green-500 rounded-lg p-4">
-                          <div className="flex items-center space-x-2 text-green-300 mb-2">
-                            <Key className="h-4 w-4" />
-                            <span className="font-medium">配置文件中已预配置API密钥</span>
-                          </div>
-                          <p className="text-sm text-green-200">
-                            系统正在使用配置文件中的API密钥，无需在此处手动配置。
-                            <br />
-                            如需修改，请编辑 <code className="bg-black/30 px-1 rounded">src/masters/config.ts</code> 文件中的 <code className="bg-black/30 px-1 rounded">API_CONFIG.GEMINI_API_KEY</code>。
-                          </p>
-                        </div>
-                      )}
-
-                      {/* API密钥设置 */}
-                      <div className="space-y-3">
-                        <label htmlFor="apiKey" className="block text-sm font-medium text-[#CCCCCC]">
-                          <div className="flex items-center space-x-2">
-                            <Key className="h-4 w-4" />
-                            <span>
-                              {API_CONFIG.GEMINI_API_KEY && API_CONFIG.GEMINI_API_KEY.trim().length > 0 
-                                ? 'Gemini API密钥（备用配置）' 
-                                : 'Gemini API密钥'
-                              }
-                            </span>
-                          </div>
-                        </label>
-                        {!API_CONFIG.GEMINI_API_KEY || API_CONFIG.GEMINI_API_KEY.trim().length === 0 ? (
-                          <p className="text-xs text-[#888888]">
-                            请在此处配置您的Gemini API密钥，或在配置文件中预配置以避免每次输入。
-                          </p>
-                        ) : (
-                          <p className="text-xs text-[#888888]">
-                            当前正在使用配置文件中的API密钥，此处配置仅作为备用。
-                          </p>
-                        )}
-                        <input
-                          id="apiKey"
-                          type="password"
-                          value={apiKey}
-                          onChange={(e) => setApiKey(e.target.value)}
-                          placeholder="请输入您的Gemini API密钥"
-                          className="w-full px-3 py-2 bg-black border border-[#333333] rounded-lg text-white placeholder-[#888888] focus:outline-none focus:ring-2 focus:ring-[#FF9900] focus:border-transparent transition-all"
-                        />
-                        <button
-                          onClick={handleSaveApiKey}
-                          disabled={isLoading}
-                          className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-[#FF9900] hover:bg-[#E68A00] disabled:bg-[#666666] text-black rounded-lg transition-colors font-medium"
-                        >
-                          <Save className="h-4 w-4" />
-                          <span>{isLoading ? '保存中...' : '保存API密钥'}</span>
-                        </button>
-                      </div>
-
-                      {/* 存储信息 */}
-                      {storageInfo.isAvailable && (
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium text-[#CCCCCC]">存储使用情况</h4>
-                          <div className="bg-[#111111] border border-[#333333] rounded-lg p-3 space-y-2">
-                            <div className="flex justify-between text-xs text-[#888888]">
-                              <span>已使用: {(storageInfo.used / 1024).toFixed(1)} KB</span>
-                              <span>使用率: {storageInfo.percentage.toFixed(1)}%</span>
-                            </div>
-                            <div className="w-full bg-[#333333] rounded-full h-2">
-                              <div 
-                                className="bg-[#FF9900] h-2 rounded-full transition-all"
-                                style={{ width: `${Math.min(storageInfo.percentage, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 大师选择标签页 */}
-                  {activeTab === 'master' && (
-                    <div className="space-y-4">
-                      <div className="text-sm text-[#CCCCCC] mb-4">
-                        选择您的默认占卜大师，这将应用到所有占卜游戏中
-                      </div>
-                      <MasterSelector
-                        selectedMaster={selectedMaster}
-                        onMasterChange={handleMasterChange}
-                        loading={isLoading}
-                        className="p-4 bg-[#111111] border border-[#333333] rounded-xl"
-                        compact={true}
-                      />
-                    </div>
-                  )}
-
-                  {/* 数据管理标签页 */}
-                  {activeTab === 'data' && (
-                    <div className="space-y-6">
-                      {/* 导入导出 */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-[#CCCCCC]">备份与恢复</h4>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={handleExportSettings}
-                            className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-[#333333] hover:bg-[#444444] text-white rounded-lg transition-colors"
-                          >
-                            <Download className="h-4 w-4" />
-                            <span>导出设置</span>
-                          </button>
-                          
-                          <label className="flex-1 flex items-center justify-center space-x-2 px-3 py-2 bg-[#333333] hover:bg-[#444444] text-white rounded-lg transition-colors cursor-pointer">
-                            <Upload className="h-4 w-4" />
-                            <span>导入设置</span>
-                            <input
-                              type="file"
-                              accept=".json"
-                              onChange={handleImportSettings}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                      </div>
-
-                      {/* 清除数据 */}
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-[#CCCCCC]">危险操作</h4>
-                        {!showClearConfirm ? (
-                          <button
-                            onClick={() => setShowClearConfirm(true)}
-                            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            <span>清除所有数据</span>
-                          </button>
-                        ) : (
-                          <div className="space-y-2">
-                            <div className="flex items-start space-x-2 p-3 bg-red-900/20 border border-red-500 rounded-lg">
-                              <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
-                              <div className="text-sm text-red-300">
-                                <p className="font-medium">确认清除所有数据？</p>
-                                <p className="mt-1">此操作将删除所有设置、历史记录和缓存数据，且无法撤销。</p>
-                              </div>
-                            </div>
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => setShowClearConfirm(false)}
-                                className="flex-1 px-3 py-2 bg-[#666666] hover:bg-[#777777] text-white rounded-lg transition-colors"
-                              >
-                                取消
-                              </button>
-                              <button
-                                onClick={handleClearData}
-                                disabled={isLoading}
-                                className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 disabled:bg-[#666666] text-white rounded-lg transition-colors"
-                              >
-                                {isLoading ? '清除中...' : '确认清除'}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
+              <X className="h-5 w-5" />
+            </button>
           </div>
         </div>
-      </Dialog>
-    </Transition>
+
+        <div style={baseStyles.modalContent}>
+          {/* 标签页导航 */}
+          <div style={{ padding: '16px 24px 0', borderBottom: '1px solid #333333' }}>
+            <nav style={{ display: 'flex', gap: '4px' }}>
+              {[
+                { key: 'api', label: 'API配置', icon: Key },
+                { key: 'master', label: '大师选择', icon: User },
+                { key: 'data', label: '数据管理', icon: Trash2 },
+              ].map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setActiveTab(key as any);
+                    clearMessages(); // 切换标签页时清除消息
+                  }}
+                  {...presetStyles.tabButtonWithHover(activeTab === key)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Icon className="h-4 w-4" />
+                    <span>{label}</span>
+                  </div>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div style={baseStyles.contentContainer()}>
+            {/* 错误和成功消息 */}
+            {error && (
+              <div style={presetStyles.message('error')}>
+                <AlertTriangle className="h-4 w-4" style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </div>
+            )}
+            
+            {success && (
+              <div style={presetStyles.message('success')}>
+                <Check className="h-4 w-4" style={{ flexShrink: 0 }} />
+                <span>{success}</span>
+              </div>
+            )}
+
+            {/* API配置标签页 */}
+            {activeTab === 'api' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* API密钥配置状态 */}
+                {API_CONFIG.GEMINI_API_KEY && API_CONFIG.GEMINI_API_KEY.trim().length > 0 && (
+                  <div style={{
+                    ...presetStyles.message('success'),
+                    padding: '16px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#4ADE80', marginBottom: '8px' }}>
+                      <Check className="h-4 w-4" />
+                      <span style={{ fontWeight: '500' }}>配置文件中已预配置API密钥</span>
+                    </div>
+                    <p style={{ fontSize: '13px', color: '#A7F3D0', lineHeight: '1.5' }}>
+                      系统正在使用配置文件中的API密钥，无需在此处手动配置。
+                      <br />
+                      如需修改，请编辑 <code style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', fontFamily: 'monospace' }}>src/masters/config.ts</code> 文件中的 <code style={{ background: 'rgba(0, 0, 0, 0.3)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', fontFamily: 'monospace' }}>API_CONFIG.GEMINI_API_KEY</code>。
+                    </p>
+                  </div>
+                )}
+
+                {/* 服务器URL设置 */}
+                <div style={baseStyles.card()}>
+                  <label htmlFor="serverUrl" style={textStyles.label}>
+                    <Settings className="h-4 w-4" style={{ color: colors.primary }} />
+                    <span>Gemini响应服务器URL（优先）</span>
+                  </label>
+                  <p style={textStyles.description}>
+                    配置后端服务器URL以代理Gemini API请求，避免Key泄露。
+                  </p>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input
+                      id="serverUrl"
+                      type="url"
+                      value={serverUrl}
+                      onChange={(e) => setServerUrl(e.target.value)}
+                      placeholder="http://localhost:3001"
+                      {...presetStyles.inputWithEffects()}
+                    />
+                    <button
+                      onClick={handleTestServer}
+                      disabled={isTestingServer || !serverUrl.trim()}
+                      {...presetStyles.buttonWithHover('secondary', isTestingServer || !serverUrl.trim(), { whiteSpace: 'nowrap' })}
+                    >
+                      {isTestingServer ? '测试中...' : '测试连接'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* API密钥设置 */}
+                <div style={baseStyles.card()}>
+                  <label htmlFor="apiKey" style={textStyles.label}>
+                    <Key className="h-4 w-4" style={{ color: colors.primary }} />
+                    <span>
+                      {API_CONFIG.GEMINI_API_KEY && API_CONFIG.GEMINI_API_KEY.trim().length > 0 
+                        ? 'Gemini API密钥（备用配置）' 
+                        : 'Gemini API密钥'
+                      }
+                    </span>
+                  </label>
+                  {!API_CONFIG.GEMINI_API_KEY || API_CONFIG.GEMINI_API_KEY.trim().length === 0 ? (
+                    <p style={textStyles.description}>
+                    暂时只支持Gemini
+                      {serverUrl.trim() && '如果配置了服务器URL且无需API密钥，此处可留空。'}
+                    </p>
+                  ) : (
+                    <p style={textStyles.description}>
+                      当前正在使用配置文件中的API密钥，此处配置仅作为备用。
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
+                    <input
+                      id="apiKey"
+                      type="text"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="请输入您的Gemini API密钥"
+                      {...presetStyles.inputWithEffects()}
+                    />
+                    <button
+                      onClick={handleTestApiKey}
+                      disabled={isTestingApiKey || !apiKey.trim()}
+                      {...presetStyles.buttonWithHover('secondary', isTestingApiKey || !apiKey.trim(), { 
+                        whiteSpace: 'nowrap',
+                        background: isTestingApiKey || !apiKey.trim() 
+                          ? 'linear-gradient(90deg, #6B7280 0%, #4B5563 100%)'
+                          : 'linear-gradient(90deg, #059669 0%, #047857 100%)'
+                      })}
+                    >
+                      {isTestingApiKey ? '验证中...' : '验证密钥'}
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleSaveApiConfig}
+                    disabled={isLoading}
+                    {...presetStyles.buttonWithHover('primary', isLoading, { width: '100%' })}
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>{isLoading ? '保存中...' : '保存API配置'}</span>
+                  </button>
+                </div>
+
+
+              </div>
+            )}
+
+            {/* 大师选择标签页 */}
+            {activeTab === 'master' && (
+              <div style={baseStyles.card()}>
+                <MasterSelector
+                  selectedMaster={selectedMaster}
+                  onMasterChange={handleMasterChange}
+                  loading={isLoading}
+                  compact={true}
+                />
+              </div>
+            )}
+
+            {/* 数据管理标签页 */}
+            {activeTab === 'data' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* 导出占卜记录 */}
+                <div style={baseStyles.card()}>
+                  <h4 style={textStyles.sectionTitle}>
+                    <Download className="h-4 w-4" style={{ color: colors.primary }} />
+                    <span>数据备份</span>
+                  </h4>
+                  <p style={textStyles.description}>
+                    导出您的所有占卜记录以备份
+                  </p>
+                  <button
+                    onClick={handleExportRecords}
+                    disabled={isLoading}
+                    {...presetStyles.buttonWithHover('secondary', isLoading, { width: '100%' })}
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>{isLoading ? '导出中...' : '导出占卜记录'}</span>
+                  </button>
+                </div>
+
+                {/* 清除数据 */}
+                <div style={baseStyles.card()}>
+                  <h4 style={textStyles.sectionTitle}>
+                    <Trash2 className="h-4 w-4" style={{ color: colors.error }} />
+                    <span>危险操作</span>
+                  </h4>
+                  <p style={textStyles.description}>
+                    清除所有应用数据，包括设置、历史记录和缓存
+                  </p>
+                  <button
+                    onClick={handleClearData}
+                    disabled={isLoading}
+                    {...presetStyles.buttonWithHover('danger', isLoading, { width: '100%' })}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>{isLoading ? '清除中...' : '清除所有数据'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 } 

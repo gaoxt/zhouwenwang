@@ -5,7 +5,7 @@ import { generateHexagram, binaryToHexagramName, getYaoSymbol, getHexagramStruct
 import { getAIAnalysisStream } from '../../masters/service';
 import { useMaster, useUI } from '../../core/store';
 import { addRecord } from '../../core/history';
-import { StreamingMarkdown } from '../../components/common';
+import { StreamingMarkdown, ErrorToast } from '../../components/common';
 import { getRandomQuestions } from '../../core/quickQuestions';
 import { getVideoPath } from '../../utils/resources';
 import type { DivinationRecord } from '../../types';
@@ -570,17 +570,17 @@ const LiuYaoPage = () => {
                     <div style={{ margin: '15px' }}>
                       <motion.button 
                         onClick={getAnalysis}
-                        disabled={analyzing || !selectedMaster}
+                        disabled={analyzing || !selectedMaster || analysisComplete}
                         className={`w-full px-4 py-3 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg ${
-                          analyzing || !selectedMaster
+                          analyzing || !selectedMaster || analysisComplete
                             ? 'bg-[#444444] cursor-not-allowed'
                             : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30'
                         }`}
                         style={{
                           color: '#ffffff'
                         }}
-                        whileHover={!analyzing && selectedMaster ? { scale: 1.02 } : {}}
-                        whileTap={!analyzing && selectedMaster ? { scale: 0.98 } : {}}
+                        whileHover={!analyzing && selectedMaster && !analysisComplete ? { scale: 1.02 } : {}}
+                        whileTap={!analyzing && selectedMaster && !analysisComplete ? { scale: 0.98 } : {}}
                       >
                         {analyzing ? (
                           <span 
@@ -597,7 +597,7 @@ const LiuYaoPage = () => {
                           </span>
                         ) : (
                           <span style={{ color: '#ffffff' }}>
-                            {analysisComplete ? '重新分析' : '大师解卦'}
+                            {analysisComplete ? `${selectedMaster?.name}解卦完成` : '大师解卦'}
                           </span>
                         )}
                       </motion.button>
@@ -634,7 +634,7 @@ const LiuYaoPage = () => {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginLeft: '12rem',
+                  marginLeft: '10rem',
                   marginRight: '8rem',
                   marginBottom: '20rem',
                 }}
@@ -650,76 +650,12 @@ const LiuYaoPage = () => {
         </div>
       </div>
 
-      {/* 错误弹窗 */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            className="fixed top-0 left-0 right-0 z-50 flex justify-center"
-            style={{ paddingTop: '24px' }}
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div 
-              className="bg-red-600 border border-red-500 rounded-lg shadow-2xl"
-              style={{
-                maxWidth: '500px',
-                width: '90%',
-                padding: '16px 20px'
-              }}
-            >
-              <div className="flex items-center" style={{ gap: '12px' }}>
-                <div 
-                  className="text-white flex-shrink-0"
-                  style={{ fontSize: '20px' }}
-                >
-                  ⚠️
-                </div>
-                <div className="flex-1" style={{ minWidth: '0' }}>
-                  <h3 
-                    className="text-white font-semibold"
-                    style={{ 
-                      fontSize: '16px',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    操作失败
-                  </h3>
-                  <p 
-                    className="text-red-100"
-                    style={{ 
-                      fontSize: '14px',
-                      lineHeight: '1.4',
-                      wordBreak: 'break-word',
-                      margin: '0'
-                    }}
-                  >
-                    {error}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setError(null)}
-                  className="text-red-200 hover:text-white transition-colors flex-shrink-0"
-                  style={{
-                    padding: '4px',
-                    borderRadius: '4px'
-                  }}
-                  title="关闭"
-                >
-                  <svg 
-                    style={{ width: '16px', height: '16px' }} 
-                    fill="currentColor" 
-                    viewBox="0 0 20 20"
-                  >
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 错误提示 */}
+      <ErrorToast
+        isVisible={!!error}
+        message={error || ''}
+        onClose={() => setError(null)}
+      />
     </motion.div>
   );
 };

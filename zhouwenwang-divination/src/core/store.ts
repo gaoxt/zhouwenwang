@@ -60,6 +60,7 @@ type AppStore = SettingsSlice & UISlice & MasterSlice & GameSlice;
 const defaultSettings: Settings = {
   apiKey: '',
   sidebarCollapsed: false,
+  serverUrl: undefined,
 };
 
 /**

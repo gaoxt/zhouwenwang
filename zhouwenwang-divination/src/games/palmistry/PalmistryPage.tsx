@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { convertImageToBase64, getPalmistryAnalysisStream } from '../../masters/service';
 import { useMaster, useUI } from '../../core/store';
 import { addRecord } from '../../core/history';
-import { StreamingMarkdown } from '../../components/common';
+import { StreamingMarkdown, ErrorToast } from '../../components/common';
 import { getVideoPath } from '../../utils/resources';
 import type { DivinationRecord } from '../../types';
 
@@ -241,7 +241,7 @@ const PalmistryPage: React.FC = () => {
     }
   };
 
-  const canStartAnalysis = imageData && selectedMaster && !isAnalyzing;
+  const canStartAnalysis = imageData && selectedMaster && !isAnalyzing && !analysisComplete;
 
   return (
     <motion.div
@@ -384,7 +384,9 @@ const PalmistryPage: React.FC = () => {
                       <span>{selectedMaster?.name || 'AI'}正在分析...</span>
                     </span>
                   ) : (
-                    '开始手相分析'
+                    <span>
+                      {analysisComplete ? `${selectedMaster?.name}手相分析完成` : '开始手相分析'}
+                    </span>
                   )}
                 </motion.button>
                 
@@ -470,7 +472,7 @@ const PalmistryPage: React.FC = () => {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginLeft: '12rem',
+                  marginLeft: '10rem',
                   marginRight: '8rem',
                   marginBottom: '20rem',
                 }}
@@ -486,37 +488,12 @@ const PalmistryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 错误弹窗 - 参考六爻页面的错误提示样式 */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6"
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -50 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="bg-red-600 border border-red-500 rounded-xl shadow-2xl max-w-md w-full mx-4 p-4">
-              <div className="flex items-center gap-3">
-                <div className="text-white text-xl flex-shrink-0">⚠️</div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white font-semibold text-base mb-1">操作失败</h3>
-                  <p className="text-red-100 text-sm leading-relaxed break-words">{error}</p>
-                </div>
-                <button
-                  onClick={() => setError(null)}
-                  className="text-red-200 hover:text-white transition-colors p-1 rounded"
-                  title="关闭"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 错误提示 */}
+      <ErrorToast
+        isVisible={!!error}
+        message={error || ''}
+        onClose={() => setError(null)}
+      />
     </motion.div>
   );
 };

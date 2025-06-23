@@ -43,7 +43,7 @@ export const GEMINI_CONFIG = {
     topK: 32,
     topP: 1,
     // 最大输出令牌数
-    maxOutputTokens: 2048,
+    maxOutputTokens: 4096,
   },
   
   // 请求配置

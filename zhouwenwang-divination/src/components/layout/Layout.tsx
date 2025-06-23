@@ -1,12 +1,20 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MainContent from './MainContent';
-import { useSettings, useMaster } from '../../core/store';
+import { useSettings, useMaster, useUI } from '../../core/store';
 import { fetchMasters, getDefaultMaster } from '../../masters/service';
 
 const Layout: React.FC = () => {
   const { settings } = useSettings();
   const { selectedMaster, setSelectedMaster, setAvailableMasters, initializeDefaultMaster } = useMaster();
+  const { clearError } = useUI();
+  const location = useLocation();
+
+  // 路由变化时清除错误状态
+  useEffect(() => {
+    clearError();
+  }, [location.pathname, clearError]);
 
   // 初始化大师列表
   useEffect(() => {

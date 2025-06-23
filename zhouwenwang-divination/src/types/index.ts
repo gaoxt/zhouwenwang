@@ -73,6 +73,8 @@ export interface Settings {
   apiKey: string;
   /** 侧边栏是否折叠 */
   sidebarCollapsed: boolean;
+  /** Gemini响应服务器URL（可选，用于代理请求） */
+  serverUrl?: string;
 }
 
 /**

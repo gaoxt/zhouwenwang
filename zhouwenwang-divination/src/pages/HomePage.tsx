@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUI } from '../core/store';
 import { motion } from 'framer-motion';
 import { Star, Sparkles, Brain, Eye, Crown, Lightbulb, Compass, BookOpen, Hand } from 'lucide-react';
 import { getAllGames } from '../games';
@@ -13,6 +14,7 @@ import type { Master } from '../types';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const { clearError } = useUI();
   const games = getAllGames();
   const [masters, setMasters] = useState<Master[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,7 @@ const HomePage: React.FC = () => {
   }, []);
 
   const handleGameClick = (path: string) => {
+    clearError(); // 导航到游戏页面时清除错误
     navigate(path);
   };
 

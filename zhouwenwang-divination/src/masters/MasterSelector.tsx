@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import type { Master } from '../types';
 import { fetchMasters, getDefaultMaster } from './service';
+import { colors, styleUtils, animations } from '../styles/modalStyles';
 
 interface MasterSelectorProps {
   /** 当前选中的大师 */
@@ -73,10 +74,17 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
   // 加载状态
   if (isLoading) {
     return (
-      <div className={`p-4 ${className}`}>
-        <div className="flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF9900]"></div>
-          <span className="ml-3 text-white">加载大师数据中...</span>
+      <div style={{ padding: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            border: '2px solid transparent',
+            borderTop: `2px solid ${colors.primary}`,
+            borderRadius: '50%',
+            ...animations.spin
+          }}></div>
+          <span style={{ marginLeft: '12px', color: colors.white }}>加载大师数据中...</span>
         </div>
       </div>
     );
@@ -85,13 +93,18 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
   // 错误状态
   if (error) {
     return (
-      <div className={`p-4 ${className}`}>
-        <div className="bg-red-500/20 border border-red-500 rounded-xl p-4">
-          <div className="flex items-center">
-            <div className="text-red-400 mr-3">⚠️</div>
+      <div style={{ padding: '16px' }}>
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.2)',
+          border: '1px solid rgba(239, 68, 68, 0.5)',
+          borderRadius: '12px',
+          padding: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ color: '#F87171', marginRight: '12px' }}>⚠️</div>
             <div>
-              <h3 className="text-red-400 font-medium">加载失败</h3>
-              <p className="text-red-300 text-sm mt-1">{error}</p>
+              <h3 style={{ color: '#F87171', fontWeight: '500', margin: 0 }}>加载失败</h3>
+              <p style={{ color: '#FCA5A5', fontSize: '14px', marginTop: '4px', margin: 0 }}>{error}</p>
             </div>
           </div>
         </div>
@@ -102,8 +115,8 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
   // 无数据状态
   if (masters.length === 0) {
     return (
-      <div className={`p-4 ${className}`}>
-        <div className="text-center text-[#CCCCCC]">
+      <div style={{ padding: '16px' }}>
+        <div style={{ textAlign: 'center', color: colors.gray[300] }}>
           <p>暂无可用的大师</p>
         </div>
       </div>
@@ -111,26 +124,45 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
   }
 
   return (
-    <div className={`${className}`}>
-      <h3 className="text-white font-medium mb-4">选择占卜大师</h3>
-      
-      <div className={`grid gap-4 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+    <div>
+      <div style={{ 
+        display: 'grid', 
+        gap: '12px',
+        gridTemplateColumns: compact ? '1fr' : 'repeat(auto-fit, minmax(260px, 1fr))'
+      }}>
         {masters.map((master) => {
           const isSelected = selectedMaster?.id === master.id;
           const isDisabled = loading || isLoading;
+          
+          const cardStyle = {
+            position: 'relative' as const,
+            cursor: isDisabled ? 'not-allowed' : 'pointer',
+            transition: 'all 0.3s ease',
+            borderRadius: '10px',
+            padding: '12px',
+            border: `2px solid ${isSelected ? colors.primary : '#333333'}`,
+            background: isSelected 
+              ? 'rgba(255, 153, 0, 0.1)' 
+              : '#111111',
+            opacity: isDisabled ? 0.5 : 1,
+            boxShadow: isSelected 
+              ? '0 8px 25px -8px rgba(255, 153, 0, 0.2)' 
+              : '0 2px 4px rgba(0, 0, 0, 0.1)'
+          };
+          
+          const hoverStyle = !isDisabled ? {
+            ...cardStyle,
+            border: `2px solid ${isSelected ? colors.primary : 'rgba(255, 153, 0, 0.5)'}`,
+            transform: 'translateY(-2px)',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)'
+          } : cardStyle;
           
           return (
             <motion.div
               key={master.id}
               onClick={() => handleMasterSelect(master)}
-              className={`
-                relative cursor-pointer transition-all duration-300 rounded-xl p-4 border-2
-                ${isSelected 
-                  ? 'border-[#FF9900] bg-[#FF9900]/10 shadow-lg shadow-[#FF9900]/20' 
-                  : 'border-[#333333] hover:border-[#FF9900]/50 bg-[#111111] hover:bg-[#111111]/80'
-                }
-                ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md'}
-              `}
+              style={cardStyle}
+              {...(!isDisabled ? styleUtils.createHoverHandlers(cardStyle, hoverStyle) : {})}
               whileHover={!isDisabled ? { scale: 1.02, y: -2 } : {}}
               whileTap={!isDisabled ? { scale: 0.98 } : {}}
               initial={{ opacity: 0, y: 20 }}
@@ -139,32 +171,80 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
             >
               {/* 选中指示器 */}
               {isSelected && (
-                <motion.div 
-                  className="absolute top-3 right-3"
+                                  <motion.div 
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px'
+                    }}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1 }}
                 >
-                  <div className="w-3 h-3 bg-[#FF9900] rounded-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    background: colors.primary,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <div style={{
+                      width: '6px',
+                      height: '6px',
+                      background: colors.black,
+                      borderRadius: '50%'
+                    }}></div>
                   </div>
                 </motion.div>
               )}
               
               {/* 大师信息 */}
-              <div className="space-y-2">
-                <h4 className={`font-medium text-lg ${isSelected ? 'text-white' : 'text-[#EEEEEE]'}`}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <h4 style={{
+                  fontWeight: '500',
+                  fontSize: '15px',
+                  color: isSelected ? colors.white : colors.gray[200],
+                  margin: 0
+                }}>
                   {master.name}
                 </h4>
-                <p className={`text-sm leading-relaxed ${isSelected ? 'text-[#CCCCCC]' : 'text-[#888888]'}`}>
+                <p style={{
+                  fontSize: '12px',
+                  lineHeight: '1.3',
+                  color: isSelected ? colors.gray[300] : colors.gray[400],
+                  margin: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
                   {master.description}
                 </p>
               </div>
               
               {/* 加载状态覆盖 */}
               {loading && isSelected && (
-                <div className="absolute inset-0 bg-black/50 rounded-xl flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#FF9900]"></div>
+                                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.5)',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    border: '2px solid transparent',
+                    borderTop: `2px solid ${colors.primary}`,
+                    borderRadius: '50%',
+                    ...animations.spin
+                  }}></div>
                 </div>
               )}
             </motion.div>
@@ -172,20 +252,7 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
         })}
       </div>
       
-      {/* 当前选中的大师显示 */}
-      {selectedMaster && (
-        <motion.div 
-          className="mt-6 p-4 bg-[#111111] border border-[#333333] rounded-xl"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[#CCCCCC]">当前选中:</span>
-            <span className="text-[#FF9900] font-medium">{selectedMaster.name}</span>
-          </div>
-        </motion.div>
-      )}
+
     </div>
   );
 }; 

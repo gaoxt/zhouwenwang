@@ -437,4 +437,40 @@ export function importSettings(jsonString: string): StorageResult<Settings> {
       data: DEFAULT_SETTINGS
     };
   }
+}
+
+/**
+ * 导出所有占卜记录数据
+ * @returns 导出的占卜记录JSON字符串
+ */
+export async function exportDivinationRecords(): Promise<StorageResult<string>> {
+  try {
+    // 导入getAllRecords函数
+    const { getAllRecords } = await import('./history');
+    
+    // 获取所有占卜记录
+    const allRecords = await getAllRecords();
+    
+    // 创建导出数据对象
+    const exportData = {
+      records: allRecords,
+      totalCount: allRecords.length,
+      exportTime: new Date().toISOString(),
+      version: '1.0.0',
+      description: '周文王占卜记录导出文件'
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    
+    return {
+      success: true,
+      data: jsonString
+    };
+  } catch (error) {
+    console.error('导出占卜记录失败:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '导出占卜记录失败'
+    };
+  }
 } 

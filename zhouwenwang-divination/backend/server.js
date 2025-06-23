@@ -1,0 +1,629 @@
+const express = require('express');
+const cors = require('cors');
+const axios = require('axios');
+const multer = require('multer');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// 中间件配置
+app.use(cors({
+  origin: function (origin, callback) {
+    // 允许本地开发和配置的域名
+    const allowedOrigins = process.env.ALLOWED_ORIGINS ? 
+      process.env.ALLOWED_ORIGINS.split(',') : 
+      ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    
+    // 开发环境允许所有域名
+    if (!origin || process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // 检查是否在允许列表中
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin.includes('*')) {
+        // 处理通配符，如 http://192.168.1.*
+        const pattern = allowedOrigin.replace(/\*/g, '.*');
+        return new RegExp(pattern).test(origin);
+      }
+      return allowedOrigin === origin;
+    });
+    
+    callback(null, isAllowed);
+  },
+  credentials: true
+}));
+
+app.use(express.json({ limit: process.env.MAX_FILE_SIZE || '10mb' }));
+
+// 文件上传配置（用于手相分析）
+const upload = multer({
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 // 10MB
+  }
+});
+
+// 日志中间件
+const logger = (req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path} - ${req.ip}`);
+  next();
+};
+
+app.use(logger);
+
+// Gemini API 配置
+const GEMINI_CONFIG = {
+  BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/models',
+  MODELS: {
+    PRIMARY: 'gemini-2.5-flash-lite-preview-06-17',
+    VISION: 'gemini-2.5-flash-lite-preview-06-17',
+    FALLBACK: 'gemini-2.0-flash-lite-001'
+  },
+  GENERATION_CONFIG: {
+    temperature: 0.7,
+    topK: 32,
+    topP: 1,
+    maxOutputTokens: 4096,
+  }
+};
+
+// 验证API Key
+function validateApiKey() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY 环境变量未设置');
+  }
+  if (!apiKey.startsWith('AIza')) {
+    throw new Error('GEMINI_API_KEY 格式不正确，应该以 AIza 开头');
+  }
+  return apiKey;
+}
+
+// 构建Gemini API URL
+function buildGeminiApiUrl(model, endpoint = 'generateContent') {
+  const apiKey = validateApiKey();
+  return `${GEMINI_CONFIG.BASE_URL}/${model}:${endpoint}?key=${apiKey}`;
+}
+
+// 错误处理中间件
+const errorHandler = (error, req, res, next) => {
+  console.error('API错误:', error);
+  
+  if (error.response?.data?.error) {
+    const geminiError = error.response.data.error;
+    return res.status(error.response.status || 500).json({
+      error: geminiError.message || '调用Gemini API失败',
+      code: geminiError.code || 'GEMINI_ERROR'
+    });
+  }
+  
+  res.status(500).json({
+    error: error.message || '服务器内部错误',
+    code: 'INTERNAL_ERROR'
+  });
+};
+
+// ============= API 端点 =============
+
+// 1. 健康检查
+app.get('/api/health', (req, res) => {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      apiConfigured: !!apiKey,
+      version: '1.0.0'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// 2. 🌟 流式文本生成（重点功能）
+app.post('/api/gemini/stream', async (req, res) => {
+  
+  try {
+    const { prompt, maxTokens = 4096 } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    // 设置SSE响应头
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+
+    const startTime = Date.now()
+
+    // 构建流式API请求
+    const geminiUrl = buildGeminiApiUrl(GEMINI_CONFIG.MODELS.PRIMARY, 'streamGenerateContent');
+    const requestData = {
+      contents: [{ 
+        role: 'user', 
+        parts: [{ text: prompt }] 
+      }],
+      generationConfig: {
+        ...GEMINI_CONFIG.GENERATION_CONFIG,
+        maxOutputTokens: maxTokens
+      }
+    };
+
+    // 发起流式请求
+    const response = await axios.post(geminiUrl, requestData, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      responseType: 'stream',
+      timeout: 60000
+    });
+
+    let accumulatedText = ''; // 累积的文本内容
+    let lastSentLength = 0; // 记录上次发送的文本长度
+    let partialJson = ''; // 用于处理跨块的JSON数据
+    let chunkCount = 0;
+    let isFirstChunk = true;
+    let jsonParseErrors = 0;
+
+    // 🔧 创建UTF-8解码器，处理流式数据中的多字节字符
+    const decoder = new TextDecoder('utf-8', { stream: true });
+
+    // 处理流式响应
+    response.data.on('data', (chunk) => {
+      chunkCount++;
+      
+      if (isFirstChunk) {
+        isFirstChunk = false;
+      }
+
+      // 🔧 使用流式解码器，正确处理跨chunk的多字节UTF-8字符
+      const chunkStr = decoder.decode(chunk, { stream: true });
+      partialJson += chunkStr;
+      
+      // 智能JSON解析 - 参考成功代码的逻辑
+      let startPos = 0;
+      while (startPos < partialJson.length) {
+        const openBrace = partialJson.indexOf('{', startPos);
+        if (openBrace === -1) break;
+        
+        // 寻找匹配的闭合括号
+        let braceCount = 0;
+        let inString = false;
+        let escaped = false;
+        let endPos = -1;
+        
+        for (let i = openBrace; i < partialJson.length; i++) {
+          const char = partialJson[i];
+          
+          if (escaped) {
+            escaped = false;
+            continue;
+          }
+          
+          if (char === '\\' && inString) {
+            escaped = true;
+            continue;
+          }
+          
+          if (char === '"') {
+            inString = !inString;
+            continue;
+          }
+          
+          if (!inString) {
+            if (char === '{') {
+              braceCount++;
+            } else if (char === '}') {
+              braceCount--;
+              if (braceCount === 0) {
+                endPos = i;
+                break;
+              }
+            }
+          }
+        }
+        
+        if (endPos === -1) {
+          break;
+        }
+        
+        const jsonStr = partialJson.slice(openBrace, endPos + 1);
+        
+        try {
+          const data = JSON.parse(jsonStr);
+          
+          // 提取文本内容
+          if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+            const newText = data.candidates[0].content.parts[0].text;
+            accumulatedText += newText; // 累积文本
+            
+            // 计算增量内容
+            const incrementalContent = accumulatedText.substring(lastSentLength);
+            
+            if (incrementalContent) {
+              lastSentLength = accumulatedText.length; // 更新已发送长度
+              
+              // 发送增量内容到客户端
+              res.write(`data: ${JSON.stringify({
+                content: incrementalContent, // ⭐ 发送增量内容，不是累积内容
+                done: false,
+                timestamp: Date.now()
+              })}\n\n`);
+            }
+          }
+          
+          // 检查是否完成
+          if (data.candidates && data.candidates[0]?.finishReason) {          }
+        } catch (parseError) {
+          jsonParseErrors++;
+          // 解析失败时不输出错误日志，继续处理
+        }
+        
+        // 移除已处理的部分
+        partialJson = partialJson.slice(endPos + 1);
+        startPos = 0;
+      }
+    });
+
+    response.data.on('end', () => {
+      // 🔧 处理剩余的字节（如果有的话）
+      const finalChunk = decoder.decode();
+      if (finalChunk) {
+        partialJson += finalChunk;
+        // 这里可以添加处理最后一块JSON的逻辑，但通常不需要，因为Gemini API会发送完整的JSON
+      }
+      
+      const totalTime = Date.now() - startTime;
+
+      // 发送结束信号
+      res.write(`data: ${JSON.stringify({
+        content: '',
+        done: true,
+        totalLength: accumulatedText.length,
+        totalTime: totalTime
+      })}\n\n`);
+
+      res.end();
+    });
+
+    response.data.on('error', (error) => {
+      console.error('❌ 流式响应错误:', error.message);
+      
+      // 发送错误信息
+      res.write(`data: ${JSON.stringify({
+        error: error.message,
+        done: true
+      })}\n\n`);
+      
+      res.end();
+    });
+
+  } catch (error) {
+    console.error('❌ 流式请求失败:', error.message);
+    
+    // 发送错误信息
+    res.write(`data: ${JSON.stringify({
+      error: error.message,
+      done: true
+    })}\n\n`);
+    
+    res.end();
+  }
+});
+
+// 3. 标准文本生成（非流式，作为备用）
+app.post('/api/gemini/generate', async (req, res) => {
+  try {
+    const { model, contents, generationConfig } = req.body;
+    
+    if (!contents || !Array.isArray(contents)) {
+      return res.status(400).json({ error: 'contents 参数是必需的且必须为数组' });
+    }
+
+    const selectedModel = model || GEMINI_CONFIG.MODELS.PRIMARY;
+    const config = { ...GEMINI_CONFIG.GENERATION_CONFIG, ...generationConfig };
+    
+    const geminiUrl = buildGeminiApiUrl(selectedModel);
+    
+    
+    const response = await axios.post(geminiUrl, {
+      contents,
+      generationConfig: config
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 30000
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    errorHandler(error, req, res);
+  }
+});
+
+// 4. 视觉分析（手相等图像分析）
+app.post('/api/gemini/vision', upload.single('image'), async (req, res) => {
+  try {
+    const { model, contents, generationConfig } = req.body;
+    
+    if (!contents || !Array.isArray(contents)) {
+      return res.status(400).json({ error: 'contents 参数是必需的且必须为数组' });
+    }
+
+    const selectedModel = model || GEMINI_CONFIG.MODELS.VISION;
+    const config = { ...GEMINI_CONFIG.GENERATION_CONFIG, ...generationConfig };
+    
+    const geminiUrl = buildGeminiApiUrl(selectedModel);
+    
+    
+    const response = await axios.post(geminiUrl, {
+      contents,
+      generationConfig: config
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 60000
+    });
+
+    res.json(response.data);
+  } catch (error) {
+    errorHandler(error, req, res);
+  }
+});
+
+// 5. 流式视觉分析
+app.post('/api/gemini/vision-stream', upload.single('image'), async (req, res) => {
+  try {
+    const { model, contents, generationConfig } = req.body;
+    
+    if (!contents || !Array.isArray(contents)) {
+      return res.status(400).json({ error: 'contents 参数是必需的且必须为数组' });
+    }
+
+    const selectedModel = model || GEMINI_CONFIG.MODELS.VISION;
+    const config = { ...GEMINI_CONFIG.GENERATION_CONFIG, ...generationConfig };
+    
+    const geminiUrl = buildGeminiApiUrl(selectedModel, 'streamGenerateContent');
+    
+    // 设置流式响应头
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    
+    res.write('event: connected\n');
+    res.write('data: {"status": "connected", "type": "vision"}\n\n');
+
+    try {
+      const response = await axios.post(geminiUrl, {
+        contents,
+        generationConfig: config
+      }, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        responseType: 'stream',
+        timeout: 60000
+      });
+
+      let buffer = '';
+      let fullText = '';
+      // 🔧 创建UTF-8解码器，处理流式数据中的多字节字符
+      const visionDecoder = new TextDecoder('utf-8', { stream: true });
+
+      response.data.on('data', (chunk) => {
+        // 🔧 使用流式解码器，正确处理跨chunk的多字节UTF-8字符
+        const chunkStr = visionDecoder.decode(chunk, { stream: true });
+        buffer += chunkStr;
+        
+        // 使用和主流式API相同的智能JSON解析逻辑
+        let startPos = 0;
+        while (startPos < buffer.length) {
+          const openBrace = buffer.indexOf('{', startPos);
+          if (openBrace === -1) break;
+          
+          // 寻找匹配的闭合括号
+          let braceCount = 0;
+          let inString = false;
+          let escaped = false;
+          let endPos = -1;
+          
+          for (let i = openBrace; i < buffer.length; i++) {
+            const char = buffer[i];
+            
+            if (escaped) {
+              escaped = false;
+              continue;
+            }
+            
+            if (char === '\\' && inString) {
+              escaped = true;
+              continue;
+            }
+            
+            if (char === '"') {
+              inString = !inString;
+              continue;
+            }
+            
+            if (!inString) {
+              if (char === '{') {
+                braceCount++;
+              } else if (char === '}') {
+                braceCount--;
+                if (braceCount === 0) {
+                  endPos = i;
+                  break;
+                }
+              }
+            }
+          }
+          
+          if (endPos === -1) {
+            break;
+          }
+          
+          const jsonStr = buffer.slice(openBrace, endPos + 1);
+          
+          try {
+            const data = JSON.parse(jsonStr);
+            
+            if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+              const currentText = data.candidates[0].content.parts[0].text;
+              
+              if (currentText !== fullText) {
+                fullText = currentText;
+                
+                res.write('event: data\n');
+                res.write(`data: ${JSON.stringify({ 
+                  text: fullText,
+                  type: 'vision',
+                  timestamp: Date.now()
+                })}\n\n`);
+                
+                // 移除冗余日志：视觉流式数据更新
+              }
+            }
+            
+            if (data.candidates && data.candidates[0]?.finishReason) {
+              // 移除冗余日志：视觉流式响应完成和最终文本长度
+              
+              res.write('event: done\n');
+              res.write(`data: ${JSON.stringify({ 
+                finishReason: data.candidates[0].finishReason,
+                finalText: fullText,
+                type: 'vision',
+                timestamp: Date.now()
+              })}\n\n`);
+              
+              res.end();
+              return;
+            }
+          } catch (parseError) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('视觉JSON解析错误:', parseError.message, 'JSON片段:', jsonStr.slice(0, 100));
+            }
+          }
+          
+          // 移除已处理的部分
+          buffer = buffer.slice(endPos + 1);
+          startPos = 0;
+        }
+      });
+
+      response.data.on('end', () => {
+        // 🔧 处理剩余的字节（如果有的话）
+        const finalChunk = visionDecoder.decode();
+        if (finalChunk) {
+          buffer += finalChunk;
+          // 这里可以添加处理最后一块JSON的逻辑，但通常不需要，因为Gemini API会发送完整的JSON
+        }
+        
+        if (!res.destroyed) {
+          res.write('event: end\n');
+          res.write('data: {"status": "completed", "type": "vision"}\n\n');
+          res.end();
+        }
+      });
+
+      response.data.on('error', (error) => {
+        if (!res.destroyed) {
+          res.write('event: error\n');
+          res.write(`data: ${JSON.stringify({ error: error.message, type: "vision" })}\n\n`);
+          res.end();
+        }
+      });
+
+    } catch (streamError) {
+      if (!res.destroyed) {
+        res.write('event: error\n');
+        res.write(`data: ${JSON.stringify({ 
+          error: '视觉流式连接失败',
+          details: streamError.message 
+        })}\n\n`);
+        res.end();
+      }
+    }
+
+  } catch (error) {
+    if (!res.destroyed) {
+      res.status(500).json({
+        error: '无法建立视觉流式连接',
+        details: error.message
+      });
+    }
+  }
+});
+
+// 6. API Key 验证
+app.get('/api/validate', async (req, res) => {
+  try {
+    const apiKey = validateApiKey();
+    
+    // 调用Gemini API验证密钥
+    const response = await axios.get(
+      `${GEMINI_CONFIG.BASE_URL}?key=${apiKey}`,
+      { timeout: 10000 }
+    );
+    
+    res.json({
+      valid: true,
+      configured: true,
+      models: response.data?.models?.length || 0,
+      message: 'API密钥验证成功'
+    });
+  } catch (error) {
+    res.status(400).json({
+      valid: false,
+      configured: !!process.env.GEMINI_API_KEY,
+      message: error.message || 'API密钥验证失败'
+    });
+  }
+});
+
+// 应用错误处理中间件
+app.use(errorHandler);
+
+// 404 处理
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: '端点不存在',
+    path: req.originalUrl
+  });
+});
+
+// 启动服务器
+app.listen(PORT, '0.0.0.0', () => {
+  console.log('\n🚀 周文王占卜系统后端服务已启动!');
+  console.log(`📡 服务地址: http://localhost:${PORT}`);
+  console.log(`🌐 局域网地址: http://[你的IP]:${PORT}`);
+  console.log(`🔧 环境: ${process.env.NODE_ENV || 'development'}`);
+  
+  try {
+    validateApiKey();
+    console.log('✅ Gemini API 密钥配置正确');
+  } catch (error) {
+    console.log('❌ Gemini API 密钥配置错误:', error.message);
+    console.log('   请在 .env 文件中设置 GEMINI_API_KEY');
+  }
+  
+  console.log('\n可用端点:');
+  console.log('  GET  /api/health          - 健康检查');
+  console.log('  POST /api/gemini/stream   - 🌟 流式文本生成');
+  console.log('  POST /api/gemini/generate - 标准文本生成');
+  console.log('  POST /api/gemini/vision   - 图像分析');
+  console.log('  POST /api/gemini/vision-stream - 流式图像分析');
+  console.log('  GET  /api/validate        - API密钥验证');
+  console.log('\n');
+}); 

@@ -411,7 +411,134 @@ function getPalmistryPrompt(master: Master): string {
 }
 
 /**
- * 获取AI流式分析结果（支持降级到非流式）
+ * 检查后端服务器健康状态
+ * @param serverUrl 服务器URL
+ * @returns Promise<boolean> 服务器是否可用
+ */
+async function checkServerHealth(serverUrl: string): Promise<boolean> {
+  try {
+    const response = await fetch(`${serverUrl.replace(/\/$/, '')}/api/health`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(5000) // 5秒超时
+    });
+    
+    if (!response.ok) {
+      return false;
+    }
+    
+    const data = await response.json();
+    return data.status === 'ok';
+  } catch (error) {
+    console.warn('服务器健康检查失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 通过后端服务器进行流式分析
+ * @param serverUrl 服务器URL
+ * @param prompt 分析提示词
+ * @param onUpdate 流式更新回调函数
+ * @returns Promise<string> 完整的分析结果
+ */
+async function getServerStreamAnalysis(
+  serverUrl: string,
+  prompt: string,
+  onUpdate?: (text: string) => void
+): Promise<string> {
+  const response = await fetch(`${serverUrl.replace(/\/$/, '')}/api/gemini/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      prompt: prompt,
+      maxTokens: 4096
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`服务器流式API调用失败: HTTP ${response.status}`);
+  }
+
+  // 设置响应编码为UTF-8，避免乱码
+  if (!response.body) {
+    throw new Error('无法获取响应流');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let accumulatedText = '';
+  let lastSentLength = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+      
+      const chunkStr = decoder.decode(value, { stream: true });
+      const lines = chunkStr.split('\n');
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // 解析SSE格式的数据
+        if (trimmedLine.startsWith('data: ')) {
+          const jsonStr = trimmedLine.slice(6); // 移除 'data: ' 前缀
+          
+          if (jsonStr === '[DONE]') {
+            break;
+          }
+          
+          try {
+            const data = JSON.parse(jsonStr);
+            
+            // 检查是否是完成信号
+            if (data.done === true) {
+              console.log('后端流式响应完成');
+              break;
+            }
+            
+            // 检查是否有错误
+            if (data.error) {
+              throw new Error(`后端服务器错误: ${data.error}`);
+            }
+            
+            // 处理增量内容
+            if (data.content && typeof data.content === 'string') {
+              accumulatedText += data.content; // 累积增量内容
+              
+              if (onUpdate) {
+                onUpdate(accumulatedText);
+              }
+              
+              // 移除冗余日志：后端流式数据接收
+            }
+            
+          } catch (parseError) {
+            // 忽略JSON解析错误，继续处理下一行
+            console.warn('JSON解析失败:', parseError);
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  
+  if (!accumulatedText || accumulatedText.trim() === '') {
+    throw new Error('后端服务器未返回有效数据');
+  }
+  
+  return accumulatedText.trim();
+}
+
+/**
+ * 获取AI流式分析结果（支持后端服务器和降级处理）
  * @param divinationData 占卜数据
  * @param master 选中的大师
  * @param gameType 游戏类型（如：liuyao, qimen, palmistry）
@@ -428,13 +555,9 @@ export async function getAIAnalysisStream(
   onUpdate?: (text: string) => void
 ): Promise<string> {
   try {
-    // 1. 获取API密钥（优先使用配置中的密钥）
+    // 1. 获取设置
     const state = useAppStore.getState();
-    const apiKey = getActiveApiKey(state.settings.apiKey);
-    
-    if (!hasValidApiKey(state.settings.apiKey)) {
-      throw new Error('请先在配置文件或设置中配置有效的Gemini API密钥');
-    }
+    const { apiKey, serverUrl } = state.settings;
     
     // 2. 验证大师对象
     if (!isValidMaster(master)) {
@@ -445,9 +568,39 @@ export async function getAIAnalysisStream(
     const prompt = buildPrompt(master, divinationData, gameType, userInfo);
     console.log('构建的提示词:', prompt);
     
+    // 4. 如果配置了服务器URL，优先使用后端服务器
+    if (serverUrl && serverUrl.trim()) {
+      
+      try {
+        // 检查服务器健康状态
+        const isServerHealthy = await checkServerHealth(serverUrl);
+        
+        if (isServerHealthy) {
+          return await getServerStreamAnalysis(serverUrl, prompt, onUpdate);
+        } else {
+          console.warn('后端服务器健康检查失败，降级到直接API调用');
+        }
+      } catch (serverError) {
+        console.warn('后端服务器调用失败，降级到直接API调用:', serverError);
+      }
+    }
+    
+    // 5. 降级到直接调用Gemini API
+    console.log('使用直接Gemini API调用...');
+    
+    // 验证API密钥（只有在没有可用服务器时才强制要求）
+    const effectiveApiKey = getActiveApiKey(apiKey);
+    if (!hasValidApiKey(apiKey)) {
+      if (serverUrl && serverUrl.trim()) {
+        throw new Error('后端服务器不可用，且未配置有效的Gemini API密钥。请检查服务器状态或配置API密钥。');
+      } else {
+        throw new Error('请先在设置中配置有效的Gemini API密钥');
+      }
+    }
+    
     try {
-      // 4. 首先尝试流式API
-      const streamUrl = buildGeminiApiUrl(GEMINI_CONFIG.MODELS.PRIMARY, apiKey, 'streamGenerateContent');
+      // 尝试直接流式API
+      const streamUrl = buildGeminiApiUrl(GEMINI_CONFIG.MODELS.PRIMARY, effectiveApiKey, 'streamGenerateContent');
       
       const requestBody = {
         contents: [
@@ -470,7 +623,7 @@ export async function getAIAnalysisStream(
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(5000) // 5秒超时
+        signal: AbortSignal.timeout(30000) // 30秒超时
       });
       
       if (!response.ok) {
@@ -514,14 +667,14 @@ export async function getAIAnalysisStream(
                   onUpdate(fullText);
                 }
                 
-                console.log(`流式数据接收: ${newText.length} 字符`);
+                // 移除冗余日志：流式数据接收
               }
               
               if (data.candidates && data.candidates[0]?.finishReason) {
-                console.log('流式响应完成');
                 break;
               }
             } catch (parseError) {
+              // 忽略JSON解析错误
             }
           }
         }
@@ -530,7 +683,6 @@ export async function getAIAnalysisStream(
       }
       
       if (fullText && fullText.trim()) {
-        console.log('AI流式分析成功完成');
         return fullText.trim();
       }
       
@@ -539,7 +691,7 @@ export async function getAIAnalysisStream(
     } catch (streamError) {
       console.warn('流式API失败，降级到标准API:', streamError);
       
-      // 5. 降级到标准API，但模拟流式效果
+      // 6. 最终降级到标准API，但模拟流式效果
       const result = await getAIAnalysis(divinationData, master, gameType, userInfo);
       
       // 模拟打字机效果
@@ -588,24 +740,51 @@ export async function getAIAnalysis(
   userInfo?: any
 ): Promise<string> {
   try {
-    // 1. 获取API密钥（优先使用配置中的密钥）
+    // 1. 获取设置
     const state = useAppStore.getState();
-    const apiKey = getActiveApiKey(state.settings.apiKey);
+    const { apiKey, serverUrl } = state.settings;
     
-    if (!hasValidApiKey(state.settings.apiKey)) {
-      throw new Error('请先在配置文件或设置中配置有效的Gemini API密钥');
+    // 2. 如果配置了服务器URL，优先使用后端服务器（非流式）
+    if (serverUrl && serverUrl.trim()) {
+      
+      try {
+        // 检查服务器健康状态
+        const isServerHealthy = await checkServerHealth(serverUrl);
+        
+        if (isServerHealthy) {
+          console.log('后端服务器健康检查通过，使用服务器API...');
+          // 构建提示词
+          const prompt = buildPrompt(master, divinationData, gameType, userInfo);
+                     // 调用服务器的流式API但不使用回调（相当于标准API）
+           return await getServerStreamAnalysis(serverUrl, prompt);
+        } else {
+          console.warn('后端服务器健康检查失败，降级到直接API调用');
+        }
+      } catch (serverError) {
+        console.warn('后端服务器调用失败，降级到直接API调用:', serverError);
+      }
     }
     
-    // 2. 验证大师对象
+    // 3. 验证API密钥（只有在没有可用服务器时才强制要求）
+    const effectiveApiKey = getActiveApiKey(apiKey);
+    if (!hasValidApiKey(apiKey)) {
+      if (serverUrl && serverUrl.trim()) {
+        throw new Error('后端服务器不可用，且未配置有效的Gemini API密钥。请检查服务器状态或配置API密钥。');
+      } else {
+        throw new Error('请先在设置中配置有效的Gemini API密钥');
+      }
+    }
+    
+    // 4. 验证大师对象
     if (!isValidMaster(master)) {
       throw new Error('大师配置无效');
     }
     
-    // 3. 构建提示词
+    // 5. 构建提示词
     const prompt = buildPrompt(master, divinationData, gameType, userInfo);
     console.log('构建的提示词:', prompt);
     
-    // 4. 构建API请求
+    // 6. 构建API请求
     const apiUrl = buildGeminiApiUrl(GEMINI_CONFIG.MODELS.PRIMARY, apiKey);
     const requestBody = {
       contents: [
@@ -622,7 +801,7 @@ export async function getAIAnalysis(
     
     console.log('正在调用Gemini API...');
     
-    // 5. 调用Gemini API
+    // 7. 调用Gemini API
     const response = await axios.post<GeminiResponse>(apiUrl, requestBody, {
       headers: {
         'Content-Type': 'application/json'
@@ -630,7 +809,7 @@ export async function getAIAnalysis(
       timeout: GEMINI_CONFIG.REQUEST_CONFIG.TIMEOUT
     });
     
-    // 6. 解析响应
+    // 8. 解析响应
     const data = response.data;
     
     if (!data.candidates || data.candidates.length === 0) {
@@ -850,7 +1029,136 @@ export async function getPalmistryAnalysis(
 }
 
 /**
- * 手相分析流式处理 - 模拟流式效果
+ * 通过后端服务器进行流式手相分析
+ * @param serverUrl 服务器URL
+ * @param imageBase64 Base64编码的图像数据
+ * @param mimeType 图像MIME类型
+ * @param prompt 分析提示词
+ * @param onUpdate 流式更新回调函数
+ * @returns Promise<string> 完整的分析结果
+ */
+async function getServerVisionStreamAnalysis(
+  serverUrl: string,
+  imageBase64: string,
+  mimeType: string,
+  prompt: string,
+  onUpdate?: (text: string) => void
+): Promise<string> {
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt
+          },
+          {
+            inline_data: {
+              mime_type: mimeType,
+              data: imageBase64
+            }
+          }
+        ]
+      }
+    ]
+  };
+
+  const response = await fetch(`${serverUrl.replace(/\/$/, '')}/api/gemini/vision-stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`服务器视觉流式API调用失败: HTTP ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error('无法获取响应流');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let accumulatedText = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      
+      if (done) break;
+      
+      const chunkStr = decoder.decode(value, { stream: true });
+      const lines = chunkStr.split('\n');
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        // 解析SSE格式的数据
+        if (trimmedLine.startsWith('data: ')) {
+          const jsonStr = trimmedLine.slice(6); // 移除 'data: ' 前缀
+          
+          if (jsonStr === '[DONE]') {
+            break;
+          }
+          
+          try {
+            const data = JSON.parse(jsonStr);
+            
+            // 检查是否是完成信号
+            if (data.finishReason || data.status === 'completed') {
+              break;
+            }
+            
+            // 检查是否有错误
+            if (data.error) {
+              throw new Error(`后端服务器错误: ${data.error}`);
+            }
+            
+            // 处理增量文本内容
+            if (data.text && typeof data.text === 'string') {
+              accumulatedText += data.text;
+              
+              if (onUpdate) {
+                onUpdate(accumulatedText);
+              }
+              
+              // 移除冗余日志：后端视觉流式数据接收
+            }
+            
+            // 处理最终文本内容
+            if (data.finalText && typeof data.finalText === 'string') {
+              if (data.finalText && !accumulatedText.includes(data.finalText)) {
+                accumulatedText += data.finalText;
+              }
+              
+              if (onUpdate) {
+                onUpdate(accumulatedText);
+              }
+              
+              // 移除冗余日志：后端视觉分析最终增量
+            }
+            
+          } catch (parseError) {
+            // 忽略JSON解析错误，继续处理下一行
+            console.warn('JSON解析失败:', parseError);
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  
+  if (!accumulatedText || accumulatedText.trim() === '') {
+    throw new Error('后端服务器未返回有效的手相分析数据');
+  }
+  
+  return accumulatedText.trim();
+}
+
+/**
+ * 手相分析流式处理 - 支持后端服务器和降级处理
  * @param imageBase64 Base64编码的图像数据
  * @param mimeType 图像MIME类型
  * @param master 选择的大师
@@ -867,6 +1175,46 @@ export async function getPalmistryAnalysisStream(
 ): Promise<string> {
   try {
     console.log('开始手相分析...');
+    
+    // 1. 获取设置
+    const state = useAppStore.getState();
+    const { apiKey, serverUrl } = state.settings;
+    
+    // 2. 构建提示词
+    const prompt = buildPrompt(master, {
+      message: "请分析这张手相图片", 
+      imageType: "palmistry"
+    }, 'palmistry', userInfo);
+    
+    // 3. 如果配置了服务器URL，优先使用后端服务器
+    if (serverUrl && serverUrl.trim()) {
+      
+      try {
+        // 检查服务器健康状态
+        const isServerHealthy = await checkServerHealth(serverUrl);
+        
+        if (isServerHealthy) {
+          console.log('后端服务器健康检查通过，使用服务器视觉流式API...');
+          return await getServerVisionStreamAnalysis(serverUrl, imageBase64, mimeType, prompt, onUpdate);
+        } else {
+          console.warn('后端服务器健康检查失败，降级到直接API调用');
+        }
+      } catch (serverError) {
+        console.warn('后端服务器手相分析调用失败，降级到直接API调用:', serverError);
+      }
+    }
+    
+    // 4. 降级到直接API调用
+    console.log('使用直接手相分析API...');
+    
+    // 检查API密钥（只有在没有可用服务器时才强制要求）
+    if (!hasValidApiKey(apiKey)) {
+      if (serverUrl && serverUrl.trim()) {
+        throw new Error('后端服务器不可用，且未配置有效的Gemini API密钥。请检查服务器状态或配置API密钥。');
+      } else {
+        throw new Error('请先在设置中配置有效的Gemini API密钥以进行手相分析');
+      }
+    }
     
     // 使用普通的手相分析API
     const fullAnalysis = await getPalmistryAnalysis(imageBase64, mimeType, master, userInfo);
@@ -894,7 +1242,6 @@ export async function getPalmistryAnalysisStream(
       onUpdate(fullAnalysis);
     }
     
-    console.log('手相分析完成');
     return fullAnalysis;
     
   } catch (error) {
