@@ -69,28 +69,18 @@
       "node_modules/**/*"
     ],
     "mac": {
-      "icon": "icon.png",
+      "icon": "public/icon.png",
       "category": "public.app-category.entertainment",
       "target": [
         {
           "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
+          "arch": "universal"
         }
       ]
     },
     "dmg": {
       "title": "周文王占卜",
-      "icon": "icon.png",
+      "icon": "public/icon.png",
       "background": null,
       "backgroundColor": "#ffffff",
       "window": {
@@ -112,7 +102,7 @@
       ]
     },
     "win": {
-      "icon": "icon.png",
+      "icon": "public/icon.png",
       "target": [
         {
           "target": "nsis",
@@ -127,7 +117,7 @@
       "certificatePassword": false
     },
     "linux": {
-      "icon": "icon.png",
+      "icon": "public/icon.png",
       "target": [
         {
           "target": "AppImage",
