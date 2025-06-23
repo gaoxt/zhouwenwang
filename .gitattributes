@@ -1,0 +1,26 @@
+# 统一换行符处理
+* text=auto
+
+# 明确指定文本文件
+*.md text
+*.txt text
+*.js text
+*.ts text
+*.tsx text
+*.jsx text
+*.json text
+*.css text
+*.html text
+*.yml text
+*.yaml text
+
+# 明确指定二进制文件
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mp4 binary
+*.webm binary
+*.woff binary
+*.woff2 binary 
