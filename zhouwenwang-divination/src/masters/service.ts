@@ -25,7 +25,11 @@ import {
  */
 export async function fetchMasters(): Promise<Master[]> {
   try {
-    const response = await fetch('/masters/config.json');
+    // 优化环境检测逻辑，减少性能开销
+    const isElectronEnv = typeof window !== 'undefined' && window.electronAPI;
+    
+    const configUrl = isElectronEnv ? './masters/config.json' : '/masters/config.json';
+    const response = await fetch(configUrl);
     
     if (!response.ok) {
       throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
@@ -504,11 +508,13 @@ export async function getAIAnalysisStream(
               
               if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
                 const newText = data.candidates[0].content.parts[0].text;
-                fullText += newText;
+                fullText = newText;
                 
                 if (onUpdate) {
                   onUpdate(fullText);
                 }
+                
+                console.log(`流式数据接收: ${newText.length} 字符`);
               }
               
               if (data.candidates && data.candidates[0]?.finishReason) {

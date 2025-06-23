@@ -7,6 +7,7 @@ import { useMaster, useUI } from '../../core/store';
 import { addRecord } from '../../core/history';
 import { StreamingMarkdown } from '../../components/common';
 import { getRandomQuestions } from '../../core/quickQuestions';
+import { getVideoPath } from '../../utils/resources';
 import type { DivinationRecord } from '../../types';
 
 const LiuYaoPage = () => {
@@ -331,7 +332,7 @@ const LiuYaoPage = () => {
                         className="w-full h-full object-cover rounded-xl"
                         style={{ width: '560px', height: '315px' }}
                       >
-                        <source src="/liuyao.mp4" type="video/mp4" />
+                        <source src={getVideoPath("liuyao.mp4")} type="video/mp4" />
                         {/* 如果视频加载失败，显示备用动画 */}
                         <div className="relative">
                           <motion.div

@@ -101,6 +101,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   opacity: 0.8;
 }
 
+/* 注释掉自动跟随系统主题的设置，强制使用暗色主题 */
+/*
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
@@ -112,4 +114,35 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   button {
     background-color: #f9f9f9;
   }
+}
+*/
+
+/* 强制暗色主题，确保在所有环境中保持一致 */
+html, body, #root {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  color-scheme: dark !important;
+}
+
+/* 只覆盖默认按钮样式，不影响自定义样式的按钮 */
+button:not([style*="background"]):not([class*="bg-"]) {
+  background-color: #1a1a1a !important;
+  color: #FFFFFF !important;
+  border-color: transparent !important;
+}
+
+button:not([style*="background"]):not([class*="bg-"]):hover {
+  border-color: #FF9900 !important;
+}
+
+/* 强制所有输入元素使用暗色主题 */
+input, select, textarea {
+  background-color: #222222 !important;
+  color: #FFFFFF !important;
+  border-color: #444444 !important;
+}
+
+/* 只为根元素设置 color-scheme，避免过度覆盖 */
+html {
+  color-scheme: dark !important;
 }

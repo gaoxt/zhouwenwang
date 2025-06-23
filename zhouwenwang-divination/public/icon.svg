@@ -1,0 +1,53 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景圆 -->
+  <circle cx="128" cy="128" r="120" fill="#1a1a2e" stroke="#16213e" stroke-width="4"/>
+  
+  <!-- 太极图外圆 -->
+  <circle cx="128" cy="128" r="100" fill="#f4f4f4" stroke="#333" stroke-width="2"/>
+  
+  <!-- 太极图阴阳分割 -->
+  <path d="M 128 28 A 100 100 0 0 1 128 228 A 50 50 0 0 1 128 128 A 50 50 0 0 0 128 28 Z" fill="#1a1a2e"/>
+  
+  <!-- 阴眼 -->
+  <circle cx="128" cy="78" r="20" fill="#f4f4f4"/>
+  
+  <!-- 阳眼 -->
+  <circle cx="128" cy="178" r="20" fill="#1a1a2e"/>
+  
+  <!-- 八卦符号 - 乾 (上方) -->
+  <g transform="translate(128, 45)">
+    <rect x="-15" y="-2" width="30" height="4" fill="#d4af37"/>
+    <rect x="-15" y="3" width="30" height="4" fill="#d4af37"/>
+    <rect x="-15" y="8" width="30" height="4" fill="#d4af37"/>
+  </g>
+  
+  <!-- 八卦符号 - 坤 (下方) -->
+  <g transform="translate(128, 211)">
+    <rect x="-15" y="-6" width="13" height="4" fill="#d4af37"/>
+    <rect x="2" y="-6" width="13" height="4" fill="#d4af37"/>
+    <rect x="-15" y="-1" width="13" height="4" fill="#d4af37"/>
+    <rect x="2" y="-1" width="13" height="4" fill="#d4af37"/>
+    <rect x="-15" y="4" width="13" height="4" fill="#d4af37"/>
+    <rect x="2" y="4" width="13" height="4" fill="#d4af37"/>
+  </g>
+  
+  <!-- 八卦符号 - 震 (右方) -->
+  <g transform="translate(211, 128) rotate(90)">
+    <rect x="-15" y="-2" width="13" height="4" fill="#d4af37"/>
+    <rect x="2" y="-2" width="13" height="4" fill="#d4af37"/>
+    <rect x="-15" y="3" width="13" height="4" fill="#d4af37"/>
+    <rect x="2" y="3" width="13" height="4" fill="#d4af37"/>
+    <rect x="-15" y="8" width="30" height="4" fill="#d4af37"/>
+  </g>
+  
+  <!-- 八卦符号 - 巽 (左方) -->
+  <g transform="translate(45, 128) rotate(-90)">
+    <rect x="-15" y="-2" width="30" height="4" fill="#d4af37"/>
+    <rect x="-15" y="3" width="30" height="4" fill="#d4af37"/>
+    <rect x="-15" y="8" width="13" height="4" fill="#d4af37"/>
+    <rect x="2" y="8" width="13" height="4" fill="#d4af37"/>
+  </g>
+  
+  <!-- 中心文字 "易" -->
+  <text x="128" y="140" font-family="serif" font-size="32" font-weight="bold" text-anchor="middle" fill="#d4af37">易</text>
+</svg> 

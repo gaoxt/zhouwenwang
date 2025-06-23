@@ -9,6 +9,7 @@ import { convertImageToBase64, getPalmistryAnalysisStream } from '../../masters/
 import { useMaster, useUI } from '../../core/store';
 import { addRecord } from '../../core/history';
 import { StreamingMarkdown } from '../../components/common';
+import { getVideoPath } from '../../utils/resources';
 import type { DivinationRecord } from '../../types';
 
 interface ImageData {
@@ -427,7 +428,7 @@ const PalmistryPage: React.FC = () => {
                         className="w-full h-full object-cover rounded-xl"
                         style={{ width: '560px', height: '315px' }}
                       >
-                        <source src="/palmistry.mp4" type="video/mp4" />
+                        <source src={getVideoPath("palmistry.mp4")} type="video/mp4" />
                         {/* 如果视频加载失败，显示备用动画 */}
                         <div className="relative">
                           <motion.div
