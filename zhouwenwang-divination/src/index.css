@@ -1,0 +1,115 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #000000;
+  color: #FFFFFF;
+}
+
+a {
+  font-weight: 500;
+  color: #FF9900;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #ffaa33;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #FF9900;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* 图标旋转动画 - 当父元素group被hover时触发 */
+.group:hover .icon-rotate-on-hover {
+  transform: rotate(360deg);
+  transition: transform 0.6s ease-in-out;
+}
+
+.icon-rotate-on-hover {
+  transition: transform 0.6s ease-in-out;
+}
+
+/* datetime-local 控件样式优化 */
+input[type="datetime-local"] {
+  color-scheme: dark;
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+  background-color: black !important;
+  border-color: black !important;
+  min-height: 36px;
+  height: 36px;
+  font-size: 16px;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit {
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-text {
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+}
+
+input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: brightness(0) invert(1);
+  opacity: 1;
+  cursor: pointer;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.8;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

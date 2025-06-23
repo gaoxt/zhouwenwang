@@ -1,0 +1,329 @@
+/**
+ * 主页组件
+ * 展示欢迎信息、占卜游戏卡片和AI大师介绍
+ */
+
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Star, Sparkles, Brain, Eye, Crown, Lightbulb, Compass, BookOpen, Hand } from 'lucide-react';
+import { getAllGames } from '../games';
+import { fetchMasters } from '../masters/service';
+import type { Master } from '../types';
+
+const HomePage: React.FC = () => {
+  const navigate = useNavigate();
+  const games = getAllGames();
+  const [masters, setMasters] = useState<Master[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedMaster, setSelectedMaster] = useState<Master | null>(null);
+
+  // 图标映射函数
+  const getIconComponent = (iconName?: string) => {
+    const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+      Crown,
+      Lightbulb,
+      Eye,
+      Compass,
+      BookOpen,
+      Hand,
+    };
+    
+    return iconName ? iconMap[iconName] : null;
+  };
+
+  useEffect(() => {
+    const loadMasters = async () => {
+      try {
+        const mastersData = await fetchMasters();
+        setMasters(mastersData);
+        // 默认选中第一个大师
+        if (mastersData.length > 0) {
+          setSelectedMaster(mastersData[0]);
+        }
+      } catch (error) {
+        console.error('加载大师数据失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMasters();
+  }, []);
+
+  const handleGameClick = (path: string) => {
+    navigate(path);
+  };
+
+  // 动画变体
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.6,
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
+  const cardHoverVariants = {
+    hover: {
+      scale: 1.02,
+      y: -5,
+      transition: { duration: 0.2 }
+    }
+  };
+
+  return (
+    <motion.div 
+      className="min-h-screen bg-black text-white flex flex-col"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className="flex-1 py-12">
+        {/* 欢迎区域 */}
+        <motion.div 
+          className="text-center"
+          variants={itemVariants}
+        >
+          <motion.div
+            className="inline-flex items-center gap-3 mb-6"
+            whileHover={{ scale: 1.05 }}
+            transition={{ duration: 0.2 }}
+          >
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-[#EEEEEE] via-[#CCCCCC] to-[#FF9900] bg-clip-text text-transparent">
+              周文王在线算命
+            </h1>
+          </motion.div>
+          
+          <motion.p 
+            className="text-xl md:text-2xl text-[#CCCCCC] mb-8 max-w-3xl mx-auto leading-relaxed"
+            style={{ marginTop: '-1rem' }}
+            variants={itemVariants}
+          >
+            传承千年的古典智慧，融合现代AI技术，为您提供准确的占卜分析与人生指导
+          </motion.p>
+
+
+        </motion.div>
+
+        {/* 快速算卦按钮 */}
+        <motion.div 
+          className="text-center mb-16"
+          variants={itemVariants}
+        >
+          <motion.button
+            onClick={() => handleGameClick('/liuyao')}
+            className="bg-gradient-to-r from-[#FF9900] to-[#E68A00] text-black px-8 py-4 rounded-xl font-bold text-lg hover:from-[#E68A00] hover:to-[#CC7700] transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-[#FF9900]/30"
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <span className="flex items-center gap-3">
+              <Sparkles className="w-6 h-6" />
+              算一卦
+              <Sparkles className="w-6 h-6" />
+            </span>
+          </motion.button>
+        </motion.div>
+
+        {/* 主要内容区域 - 弹性布局 */}
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex gap-16 items-start">
+            
+            {/* 左侧：占卜类型 */}
+            <motion.section 
+              className="flex-1 space-y-8"
+              style={{ marginLeft: '2rem', marginRight: '1rem' }}
+              variants={itemVariants}
+            >
+              <motion.div 
+                className="text-center mb-8"
+                variants={itemVariants}
+              >
+                <h2 className="text-3xl font-bold mb-4">
+                  古老智慧
+                </h2>
+                <p className="text-[#CCCCCC] text-lg">
+                  选择您感兴趣的占卜方式，开启智慧之旅
+                </p>
+              </motion.div>
+
+              {/* 占卜游戏垂直排列 */}
+              <div className="space-y-6">
+                {games.map((game, index) => {
+                  const IconComponent = game.icon;
+                  return (
+                    <motion.div
+                      key={game.id}
+                      className="relative group cursor-pointer"
+                      variants={itemVariants}
+                      whileHover="hover"
+                      onClick={() => handleGameClick(game.path)}
+                    >
+                      <motion.div
+                        className="bg-[#111111] border border-[#333333] rounded-xl p-6 transition-all duration-300 hover:border-[#FF9900] hover:shadow-lg hover:shadow-[#FF9900]/20"
+                        variants={cardHoverVariants}
+                      >
+                        <div className="flex items-center gap-4">
+                          {IconComponent && (
+                            <motion.div 
+                              className="text-[#FF9900] p-3 bg-[#FF9900]/10 rounded-lg flex-shrink-0 icon-rotate-on-hover"
+                              style={{ margin: '2rem' }}
+                            >
+                              <IconComponent size={32} />
+                            </motion.div>
+                          )}
+                          <div className="flex-1">
+                            <h3 className="text-xl font-semibold text-white mb-2">{game.name}</h3>
+                            <p className="text-[#CCCCCC] leading-relaxed">
+                              {game.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 悬浮效果装饰 */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#FF9900]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl pointer-events-none" />
+                      </motion.div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </motion.section>
+
+            {/* 右侧：弹性布局内容区域 */}
+            <motion.section 
+              className="flex-1 flex flex-col"
+              style={{ marginLeft: '1rem', marginRight: '2rem' }}
+              variants={itemVariants}
+            >
+              {/* 顶部标题区域 */}
+              <motion.div 
+                className="text-center mb-8"
+                variants={itemVariants}
+              >
+                <h2 className="text-3xl font-bold mb-4">
+                  大师团队
+                </h2>
+                <p className="text-[#CCCCCC] text-lg">
+                  历代易学宗师的智慧结晶，为您提供专业的占卜分析
+                </p>
+              </motion.div>
+
+              {/* AI大师角色卡片区域 */}
+              <motion.div 
+                className="flex-1"
+                variants={itemVariants}
+              >
+                
+                {loading ? (
+                  <motion.div 
+                    className="text-center py-12"
+                    variants={itemVariants}
+                  >
+                    <div className="inline-flex items-center gap-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF9900]"></div>
+                      <span className="text-[#CCCCCC]">正在加载大师信息...</span>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-4 mb-8">
+                      {masters.map((master, index) => {
+                        const IconComponent = getIconComponent(master.icon);
+                        return (
+                          <motion.div
+                            key={master.id}
+                            className={`bg-[#111111] border rounded-xl p-6 transition-all duration-300 hover:shadow-lg cursor-pointer h-32 ${
+                              selectedMaster?.id === master.id 
+                                ? 'border-[#FF9900] shadow-lg shadow-[#FF9900]/20' 
+                                : 'border-[#333333] hover:border-[#FF9900] hover:shadow-[#FF9900]/10'
+                            }`}
+                            style={{ padding: '1rem' }}
+                            variants={itemVariants}
+                            whileHover={{ scale: 1.02, y: -3 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={() => setSelectedMaster(master)}
+                          >
+                            <div className="flex flex-col justify-center items-center h-full text-center gap-2">
+                              {IconComponent && (
+                                <IconComponent 
+                                  size={24} 
+                                  className="text-[#FF9900] flex-shrink-0" 
+                                />
+                              )}
+                              <div className="flex flex-col items-center gap-1">
+                                <h4 className="text-lg font-bold text-white">{master.name}</h4>
+                                {master.dynasty && (
+                                  <span className="text-xs text-[#888888]">{master.dynasty}</span>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+
+                    {/* 选中大师的详细介绍 */}
+                    {selectedMaster && (
+                      <motion.div 
+                        className="bg-[#111111] border border-[#333333] rounded-xl p-6 text-center"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <h4 className="text-lg font-bold text-white mb-3">{selectedMaster.name}</h4>
+                        <p className="text-[#CCCCCC] leading-relaxed text-sm">
+                          {selectedMaster.description}
+                        </p>
+                      </motion.div>
+                    )}
+                  </>
+                )}
+              </motion.div>
+            </motion.section>
+
+          </div>
+        </div>
+
+      </div>
+      
+      {/* 底部特性介绍 - 固定在底部 */}
+      <motion.div 
+        className="text-center py-12 bg-black"
+        variants={itemVariants}
+      >
+          <motion.div 
+            className="flex flex-wrap justify-center gap-8 text-[#CCCCCC] text-lg"
+            style={{ margin: '1rem' }}
+            variants={itemVariants}
+          >
+            <div className="flex items-center gap-2" style={{ margin: '1rem' }}>
+              <Brain className="w-5 h-5 text-[#FF9900]" />
+              <span>AI智能分析</span>
+            </div>
+            <div className="flex items-center gap-2" style={{ margin: '1rem' }}>
+              <Star className="w-5 h-5 text-[#FF9900]" />
+              <span>传统易学</span>
+            </div>
+            <div className="flex items-center gap-2" style={{ margin: '1rem' }}>
+              <Eye className="w-5 h-5 text-[#FF9900]" />
+              <span>精准预测</span>
+            </div>
+          </motion.div>
+        </motion.div>
+    </motion.div>
+  );
+};
+
+export default HomePage; 
