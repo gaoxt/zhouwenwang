@@ -1,6 +1,23 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* TailwindCSS 现在使用 CDN 版本，不再需要本地编译 */
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
+
+/* 补充基础样式重置，确保与之前的样式保持一致 */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html, body {
+  height: 100%;
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  color-scheme: dark !important;
+}
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -9,10 +26,29 @@
 }
 
 body {
-  margin: 0;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   min-height: 100vh;
-  background-color: #000000;
-  color: #FFFFFF;
+  margin: 0;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+#root, #__next {
+  isolation: isolate;
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
 }
 
 a {
@@ -29,6 +65,7 @@ h1 {
   line-height: 1.1;
 }
 
+/* 默认按钮样式 */
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -36,13 +73,21 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
 }
-button:hover {
-  border-color: #FF9900;
+
+/* 只覆盖默认按钮样式，不影响自定义样式的按钮 */
+button:not([style*="background"]):not([class*="bg-"]) {
+  background-color: #1a1a1a !important;
+  color: #FFFFFF !important;
+  border-color: transparent !important;
 }
+
+button:not([style*="background"]):not([class*="bg-"]):hover {
+  border-color: #FF9900 !important;
+}
+
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
@@ -56,6 +101,13 @@ button:focus-visible {
 
 .icon-rotate-on-hover {
   transition: transform 0.6s ease-in-out;
+}
+
+/* 强制所有输入元素使用暗色主题 */
+input, select, textarea {
+  background-color: #222222 !important;
+  color: #FFFFFF !important;
+  border-color: #444444 !important;
 }
 
 /* datetime-local 控件样式优化 */
@@ -116,31 +168,6 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   }
 }
 */
-
-/* 强制暗色主题，确保在所有环境中保持一致 */
-html, body, #root {
-  background-color: #000000 !important;
-  color: #FFFFFF !important;
-  color-scheme: dark !important;
-}
-
-/* 只覆盖默认按钮样式，不影响自定义样式的按钮 */
-button:not([style*="background"]):not([class*="bg-"]) {
-  background-color: #1a1a1a !important;
-  color: #FFFFFF !important;
-  border-color: transparent !important;
-}
-
-button:not([style*="background"]):not([class*="bg-"]):hover {
-  border-color: #FF9900 !important;
-}
-
-/* 强制所有输入元素使用暗色主题 */
-input, select, textarea {
-  background-color: #222222 !important;
-  color: #FFFFFF !important;
-  border-color: #444444 !important;
-}
 
 /* 只为根元素设置 color-scheme，避免过度覆盖 */
 html {

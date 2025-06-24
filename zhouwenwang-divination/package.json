@@ -23,19 +23,15 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
-    "@tailwindcss/postcss": "^4.1.10",
-    "autoprefixer": "^10.4.21",
     "axios": "^1.10.0",
     "dotenv": "^16.5.0",
     "framer-motion": "^12.18.1",
     "lucide-react": "^0.518.0",
-    "postcss": "^8.5.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.2",
     "remark-gfm": "^4.0.1",
-    "tailwindcss": "^4.1.10",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
