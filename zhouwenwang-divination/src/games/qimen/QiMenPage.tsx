@@ -487,7 +487,7 @@ const QiMenPage = () => {
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* 页面标题 */}
         <motion.div 
-          className="text-center mb-12"
+          className="text-center mb-2"
           variants={itemVariants}
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#EEEEEE] via-[#CCCCCC] to-[#FF9900] bg-clip-text text-transparent">
@@ -528,12 +528,11 @@ const QiMenPage = () => {
                 <motion.button 
                   onClick={performDivination}
                   disabled={isGenerating || !question.trim()}
-                  className={`px-8 py-3 h-[46px] rounded-xl font-bold text-lg transition-all duration-300 shadow-lg whitespace-nowrap ${
+                  className={`px-8 py-3 h-[46px] rounded-xl font-bold text-lg transition-all duration-300 shadow-lg whitespace-nowrap flex items-center justify-center ${
                     isGenerating || !question.trim()
                       ? 'bg-[#444444] text-[#888888] cursor-not-allowed'
                       : 'bg-gradient-to-r from-[#FF9900] to-[#E68A00] text-black hover:from-[#E68A00] hover:to-[#CC7700] hover:shadow-xl hover:shadow-[#FF9900]/30'
                   }`}
-                  style={{ marginLeft: '10px' }}
                   whileHover={!isGenerating && question.trim() ? { scale: 1.05, y: -2 } : {}}
                   whileTap={!isGenerating && question.trim() ? { scale: 0.98 } : {}}
                 >
@@ -549,7 +548,7 @@ const QiMenPage = () => {
               </div>
 
               {/* 快速开始水平布局 - 居中 */}
-              <div className="flex justify-center items-center gap-6 mb-8">
+              <div className="flex justify-center items-center gap-3 mb-8">
                 <h4 className="text-lg font-medium text-white whitespace-nowrap">快速开始：</h4>
                 <div className="flex flex-wrap gap-4">
                   {quickQuestions.map((quickQuestion, index) => (
@@ -572,7 +571,7 @@ const QiMenPage = () => {
               </div>
 
               {/* 时间选择区域 - 简洁版本 */}
-              <div className="flex justify-center items-center gap-6">
+              <div className="flex justify-center items-center gap-3">
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-[#FF9900]" />
                   <h4 className="text-lg font-medium text-white whitespace-nowrap">起盘时间：</h4>
@@ -632,7 +631,6 @@ const QiMenPage = () => {
           <AnimatePresence>
             {isGenerating && (
               <motion.div 
-                className="p-8"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
@@ -684,7 +682,6 @@ const QiMenPage = () => {
           {/* 奇门盘结果显示 */}
           {chartData && !isGenerating && hasPerformedDivination && (
             <motion.div 
-              className="p-8"
               variants={itemVariants}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -756,7 +753,7 @@ const QiMenPage = () => {
                       <motion.button 
                         onClick={getAnalysis}
                         disabled={isAnalyzing || !selectedMaster || analysisComplete}
-                        className={`w-full px-4 py-3 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg ${
+                        className={`w-full px-4 py-3 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg flex items-center justify-center ${
                           isAnalyzing || !selectedMaster || analysisComplete
                             ? 'bg-[#444444] cursor-not-allowed'
                             : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30'
@@ -790,7 +787,7 @@ const QiMenPage = () => {
                       {!selectedMaster && (
                         <motion.button 
                           onClick={() => navigate('/settings')}
-                          className="w-full mt-2 bg-green-600 text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all duration-300 shadow-lg"
+                          className="w-full mt-2 bg-green-600 text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all duration-300 shadow-lg flex items-center justify-center"
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                         >
@@ -807,8 +804,7 @@ const QiMenPage = () => {
           {/* 大师分析结果 */}
           {aiAnalysis && (
             <motion.div 
-              className="p-8"
-              style={{ marginTop: '48px' }}
+              className="p-4"
               variants={itemVariants}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -818,8 +814,6 @@ const QiMenPage = () => {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginLeft: '10rem',
-                  marginRight: '8rem',
                   marginBottom: '20rem',
                 }}
               >

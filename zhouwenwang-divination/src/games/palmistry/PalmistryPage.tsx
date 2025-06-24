@@ -245,16 +245,16 @@ const PalmistryPage: React.FC = () => {
 
   return (
     <motion.div
-      className="container-main"
+      className="min-h-screen bg-black text-white"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      <div className="section-spacing">
+      <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           {/* 页面标题 */}
           <motion.div 
-            className="text-center mb-12"
+            className="text-center mb-2"
             variants={itemVariants}
           >
             <h1 className="text-4xl font-bold text-white mb-4">
@@ -280,7 +280,7 @@ const PalmistryPage: React.FC = () => {
             />
             
             {/* 图片上传或预览区域 */}
-            <div className="mb-8">
+            <div className="mb-2">
               {!imageData ? (
                 <div
                   onClick={handleUploadAreaClick}
@@ -362,7 +362,6 @@ const PalmistryPage: React.FC = () => {
             {imageData && (
               <motion.div 
                 className="text-center mb-8"
-                style={{ marginTop: '10px' }}
                 variants={itemVariants}
               >
                 <motion.button
@@ -408,7 +407,6 @@ const PalmistryPage: React.FC = () => {
           <AnimatePresence>
             {showLoadingAnimation && (
               <motion.div 
-                className="p-8"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
@@ -462,7 +460,6 @@ const PalmistryPage: React.FC = () => {
           {/* 分析结果显示 - 参考六爻页面的结果展示 */}
           {analysisResult && (
             <motion.div 
-              className="mt-12"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               variants={itemVariants}
@@ -472,8 +469,6 @@ const PalmistryPage: React.FC = () => {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginLeft: '10rem',
-                  marginRight: '8rem',
                   marginBottom: '20rem',
                 }}
               >

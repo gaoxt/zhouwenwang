@@ -111,8 +111,7 @@ const HomePage: React.FC = () => {
           </motion.div>
           
           <motion.p 
-            className="text-xl md:text-2xl text-[#CCCCCC] mb-8 max-w-3xl mx-auto leading-relaxed"
-            style={{ marginTop: '-1rem' }}
+            className="text-xl md:text-2xl text-[#CCCCCC] mb-8 max-w-5xl mx-auto leading-relaxed"
             variants={itemVariants}
           >
             传承千年的古典智慧，融合现代AI技术，为您提供准确的占卜分析与人生指导
@@ -123,7 +122,7 @@ const HomePage: React.FC = () => {
 
         {/* 快速算卦按钮 */}
         <motion.div 
-          className="text-center mb-16"
+          className="text-center mb-10"
           variants={itemVariants}
         >
           <motion.button
@@ -147,7 +146,6 @@ const HomePage: React.FC = () => {
             {/* 左侧：占卜类型 */}
             <motion.section 
               className="flex-1 space-y-8"
-              style={{ marginLeft: '2rem', marginRight: '1rem' }}
               variants={itemVariants}
             >
               <motion.div 
@@ -182,7 +180,6 @@ const HomePage: React.FC = () => {
                           {IconComponent && (
                             <motion.div 
                               className="text-[#FF9900] p-3 bg-[#FF9900]/10 rounded-lg flex-shrink-0 icon-rotate-on-hover"
-                              style={{ margin: '2rem' }}
                             >
                               <IconComponent size={32} />
                             </motion.div>
@@ -207,7 +204,6 @@ const HomePage: React.FC = () => {
             {/* 右侧：弹性布局内容区域 */}
             <motion.section 
               className="flex-1 flex flex-col"
-              style={{ marginLeft: '1rem', marginRight: '2rem' }}
               variants={itemVariants}
             >
               {/* 顶部标题区域 */}
@@ -252,7 +248,6 @@ const HomePage: React.FC = () => {
                                 ? 'border-[#FF9900] shadow-lg shadow-[#FF9900]/20' 
                                 : 'border-[#333333] hover:border-[#FF9900] hover:shadow-[#FF9900]/10'
                             }`}
-                            style={{ padding: '1rem' }}
                             variants={itemVariants}
                             whileHover={{ scale: 1.02, y: -3 }}
                             transition={{ duration: 0.2 }}
@@ -308,18 +303,17 @@ const HomePage: React.FC = () => {
       >
           <motion.div 
             className="flex flex-wrap justify-center gap-8 text-[#CCCCCC] text-lg"
-            style={{ margin: '1rem' }}
             variants={itemVariants}
           >
-            <div className="flex items-center gap-2" style={{ margin: '1rem' }}>
+            <div className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-[#FF9900]" />
               <span>AI智能分析</span>
             </div>
-            <div className="flex items-center gap-2" style={{ margin: '1rem' }}>
+            <div className="flex items-center gap-2">
               <Star className="w-5 h-5 text-[#FF9900]" />
               <span>传统易学</span>
             </div>
-            <div className="flex items-center gap-2" style={{ margin: '1rem' }}>
+            <div className="flex items-center gap-2">
               <Eye className="w-5 h-5 text-[#FF9900]" />
               <span>精准预测</span>
             </div>

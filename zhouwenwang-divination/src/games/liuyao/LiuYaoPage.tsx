@@ -220,7 +220,7 @@ const LiuYaoPage = () => {
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* 页面标题 */}
         <motion.div 
-          className="text-center mb-12"
+          className="text-center mb-2"
           variants={itemVariants}
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#EEEEEE] via-[#CCCCCC] to-[#FF9900] bg-clip-text text-transparent">
@@ -236,7 +236,6 @@ const LiuYaoPage = () => {
         <div className="space-y-8">
           {/* 问题输入区域 */}
           <motion.div 
-            className="p-8"
             variants={itemVariants}
           >
             <motion.div variants={itemVariants}>
@@ -263,12 +262,11 @@ const LiuYaoPage = () => {
                 <motion.button 
                   onClick={performDivination}
                   disabled={isDivining || !question.trim()}
-                  className={`px-8 py-3 h-[46px] rounded-xl font-bold text-lg transition-all duration-300 shadow-lg whitespace-nowrap ${
+                  className={`px-8 py-3 h-[46px] rounded-xl font-bold text-lg transition-all duration-300 shadow-lg whitespace-nowrap flex items-center justify-center ${
                     isDivining || !question.trim()
                       ? 'bg-[#444444] text-[#888888] cursor-not-allowed'
                       : 'bg-gradient-to-r from-[#FF9900] to-[#E68A00] text-black hover:from-[#E68A00] hover:to-[#CC7700] hover:shadow-xl hover:shadow-[#FF9900]/30'
                   }`}
-                  style={{ marginLeft: '10px' }}
                   whileHover={!isDivining && question.trim() ? { scale: 1.05, y: -2 } : {}}
                   whileTap={!isDivining && question.trim() ? { scale: 0.98 } : {}}
                 >
@@ -284,7 +282,7 @@ const LiuYaoPage = () => {
               </div>
 
               {/* 快速开始水平布局 - 居中 */}
-              <div className="flex justify-center items-center gap-6">
+              <div className="flex justify-center items-center gap-3">
                 <h4 className="text-lg font-medium text-white whitespace-nowrap">快速开始：</h4>
                 <div className="flex flex-wrap gap-4">
                   {quickQuestions.map((quickQuestion, index) => (
@@ -312,7 +310,6 @@ const LiuYaoPage = () => {
           <AnimatePresence>
             {isDivining && (
               <motion.div 
-                className="p-8"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
@@ -364,7 +361,6 @@ const LiuYaoPage = () => {
           {/* 卦象结果显示 */}
           {result && !isDivining && (
             <motion.div 
-              className="p-8"
               variants={itemVariants}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -622,8 +618,8 @@ const LiuYaoPage = () => {
           {/* 大师分析结果 */}
           {analysis && (
             <motion.div 
-              className="p-8"
-              style={{ marginTop: '120px' }}
+              className="p-4"
+              style={{ marginTop: '10rem' }}
               variants={itemVariants}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -634,8 +630,6 @@ const LiuYaoPage = () => {
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginLeft: '10rem',
-                  marginRight: '8rem',
                   marginBottom: '20rem',
                 }}
               >

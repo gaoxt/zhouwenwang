@@ -41,7 +41,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, isActiv
       onClick={() => clearError()} // 点击导航项时清除错误
       className={`
         flex items-center px-5 py-4 rounded-xl transition-all duration-300 ease-in-out
-        font-medium text-sm min-h-[52px] mb-2 text-white
+        font-medium text-base min-h-[52px] mb-2 text-white
         ${isActive 
           ? 'bg-[#2a2a2a] text-white shadow-md' 
           : 'hover:bg-[#1a1a1a] hover:text-white hover:shadow-sm'
@@ -91,7 +91,7 @@ const SettingsItem: React.FC<SettingsItemProps> = ({ icon, label, isCollapsed, i
       }}
       className={`
         flex items-center px-5 py-4 rounded-xl transition-all duration-300 ease-in-out
-        font-medium text-sm min-h-[52px] mb-2 text-white
+        font-medium text-base min-h-[52px] mb-2 text-white
         ${isActive 
           ? 'bg-[#2a2a2a] text-white shadow-md' 
           : 'hover:bg-[#1a1a1a] hover:text-white hover:shadow-sm'
