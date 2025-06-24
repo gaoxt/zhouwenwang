@@ -18,6 +18,8 @@ import {
   hasValidApiKey
 } from './config';
 
+// 🚀 流式响应控制开关 - 在这里修改即可控制全局行为
+const ENABLE_STREAMING = false; // true: 使用SSE流式API, false: 使用标准API+前端模拟流式效果
 /**
  * 从public目录加载大师配置数据
  * @returns Promise<Master[]> 大师列表
@@ -438,6 +440,107 @@ async function checkServerHealth(serverUrl: string): Promise<boolean> {
 }
 
 /**
+ * 通过后端服务器进行标准分析（非流式）
+ * @param serverUrl 服务器URL
+ * @param prompt 分析提示词
+ * @returns Promise<string> 完整的分析结果
+ */
+async function getServerStandardAnalysis(
+  serverUrl: string,
+  prompt: string
+): Promise<string> {
+  const response = await fetch(`${serverUrl.replace(/\/$/, '')}/api/gemini/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{ 
+        role: 'user', 
+        parts: [{ text: prompt }] 
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        topK: 32,
+        topP: 1,
+        maxOutputTokens: 4096,
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`服务器标准API调用失败: HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.candidates || data.candidates.length === 0) {
+    throw new Error('服务器未返回有效数据');
+  }
+  
+  const candidate = data.candidates[0];
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    throw new Error('服务器返回数据格式错误');
+  }
+  
+  const analysisText = candidate.content.parts[0].text;
+  
+  if (!analysisText || analysisText.trim() === '') {
+    throw new Error('服务器返回的分析结果为空');
+  }
+  
+  return analysisText.trim();
+}
+
+/**
+ * 统一的服务器分析函数，根据设置选择流式或非流式
+ * @param serverUrl 服务器URL
+ * @param prompt 分析提示词
+ * @param enableStreaming 是否启用流式响应
+ * @param onUpdate 流式更新回调函数（仅流式模式使用）
+ * @returns Promise<string> 完整的分析结果
+ */
+async function getServerAnalysis(
+  serverUrl: string,
+  prompt: string,
+  enableStreaming: boolean,
+  onUpdate?: (text: string) => void
+): Promise<string> {
+  if (enableStreaming) {
+    // 使用流式API
+    return await getServerStreamAnalysis(serverUrl, prompt, onUpdate);
+  } else {
+    // 使用标准API
+    const result = await getServerStandardAnalysis(serverUrl, prompt);
+    
+    // 如果有更新回调，模拟流式显示效果
+    if (onUpdate && result) {
+      const words = result.split('');
+      const chunkSize = 3; // 每次显示3个字符
+      const delay = 30; // 30ms延迟，模拟打字效果
+      
+      let currentText = '';
+      
+      for (let i = 0; i < words.length; i += chunkSize) {
+        const chunk = words.slice(i, i + chunkSize).join('');
+        currentText += chunk;
+        onUpdate(currentText);
+        
+        // 添加延迟以模拟流式效果
+        if (i + chunkSize < words.length) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+      
+      // 确保最终显示完整文本
+      onUpdate(result);
+    }
+    
+    return result;
+  }
+}
+
+/**
  * 通过后端服务器进行流式分析
  * @param serverUrl 服务器URL
  * @param prompt 分析提示词
@@ -558,6 +661,7 @@ export async function getAIAnalysisStream(
     // 1. 获取设置
     const state = useAppStore.getState();
     const { apiKey, serverUrl } = state.settings;
+    const enableStreaming = ENABLE_STREAMING; // 使用代码中的开关
     
     // 2. 验证大师对象
     if (!isValidMaster(master)) {
@@ -576,7 +680,8 @@ export async function getAIAnalysisStream(
         const isServerHealthy = await checkServerHealth(serverUrl);
         
         if (isServerHealthy) {
-          return await getServerStreamAnalysis(serverUrl, prompt, onUpdate);
+          console.log(`使用${enableStreaming ? '流式' : '标准'}后端服务器API...`);
+          return await getServerAnalysis(serverUrl, prompt, enableStreaming, onUpdate);
         } else {
           console.warn('后端服务器健康检查失败，降级到直接API调用');
         }
@@ -743,8 +848,10 @@ export async function getAIAnalysis(
     // 1. 获取设置
     const state = useAppStore.getState();
     const { apiKey, serverUrl } = state.settings;
+    // 对于非流式分析，始终使用标准API
+    const enableStreaming = false;
     
-    // 2. 如果配置了服务器URL，优先使用后端服务器（非流式）
+    // 2. 如果配置了服务器URL，优先使用后端服务器
     if (serverUrl && serverUrl.trim()) {
       
       try {
@@ -755,8 +862,8 @@ export async function getAIAnalysis(
           console.log('后端服务器健康检查通过，使用服务器API...');
           // 构建提示词
           const prompt = buildPrompt(master, divinationData, gameType, userInfo);
-                     // 调用服务器的流式API但不使用回调（相当于标准API）
-           return await getServerStreamAnalysis(serverUrl, prompt);
+          // 对于非流式分析，强制使用标准API
+          return await getServerAnalysis(serverUrl, prompt, false);
         } else {
           console.warn('后端服务器健康检查失败，降级到直接API调用');
         }
@@ -1158,6 +1265,128 @@ async function getServerVisionStreamAnalysis(
 }
 
 /**
+ * 通过后端服务器进行标准视觉分析（非流式）
+ * @param serverUrl 服务器URL
+ * @param imageBase64 Base64编码的图像数据
+ * @param mimeType 图像MIME类型
+ * @param prompt 分析提示词
+ * @returns Promise<string> 完整的分析结果
+ */
+async function getServerVisionStandardAnalysis(
+  serverUrl: string,
+  imageBase64: string,
+  mimeType: string,
+  prompt: string
+): Promise<string> {
+  const requestBody = {
+    contents: [
+      {
+        parts: [
+          {
+            text: prompt
+          },
+          {
+            inline_data: {
+              mime_type: mimeType,
+              data: imageBase64
+            }
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.7,
+      topK: 32,
+      topP: 1,
+      maxOutputTokens: 4096,
+    }
+  };
+
+  const response = await fetch(`${serverUrl.replace(/\/$/, '')}/api/gemini/vision`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    throw new Error(`服务器视觉标准API调用失败: HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.candidates || data.candidates.length === 0) {
+    throw new Error('服务器未返回有效的视觉分析数据');
+  }
+  
+  const candidate = data.candidates[0];
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    throw new Error('服务器返回数据格式错误');
+  }
+  
+  const analysisText = candidate.content.parts[0].text;
+  
+  if (!analysisText || analysisText.trim() === '') {
+    throw new Error('服务器返回的视觉分析结果为空');
+  }
+  
+  return analysisText.trim();
+}
+
+/**
+ * 统一的服务器视觉分析函数，根据设置选择流式或非流式
+ * @param serverUrl 服务器URL
+ * @param imageBase64 Base64编码的图像数据
+ * @param mimeType 图像MIME类型
+ * @param prompt 分析提示词
+ * @param enableStreaming 是否启用流式响应
+ * @param onUpdate 流式更新回调函数（仅流式模式使用）
+ * @returns Promise<string> 完整的分析结果
+ */
+async function getServerVisionAnalysis(
+  serverUrl: string,
+  imageBase64: string,
+  mimeType: string,
+  prompt: string,
+  enableStreaming: boolean,
+  onUpdate?: (text: string) => void
+): Promise<string> {
+  if (enableStreaming) {
+    // 使用流式API
+    return await getServerVisionStreamAnalysis(serverUrl, imageBase64, mimeType, prompt, onUpdate);
+  } else {
+    // 使用标准API
+    const result = await getServerVisionStandardAnalysis(serverUrl, imageBase64, mimeType, prompt);
+    
+    // 如果有更新回调，模拟流式显示效果
+    if (onUpdate && result) {
+      const words = result.split('');
+      const chunkSize = 3; // 每次显示3个字符
+      const delay = 30; // 30ms延迟，模拟打字效果
+      
+      let currentText = '';
+      
+      for (let i = 0; i < words.length; i += chunkSize) {
+        const chunk = words.slice(i, i + chunkSize).join('');
+        currentText += chunk;
+        onUpdate(currentText);
+        
+        // 添加延迟以模拟流式效果
+        if (i + chunkSize < words.length) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+      
+      // 确保最终显示完整文本
+      onUpdate(result);
+    }
+    
+    return result;
+  }
+}
+
+/**
  * 手相分析流式处理 - 支持后端服务器和降级处理
  * @param imageBase64 Base64编码的图像数据
  * @param mimeType 图像MIME类型
@@ -1179,6 +1408,7 @@ export async function getPalmistryAnalysisStream(
     // 1. 获取设置
     const state = useAppStore.getState();
     const { apiKey, serverUrl } = state.settings;
+    const enableStreaming = ENABLE_STREAMING; // 使用代码中的开关
     
     // 2. 构建提示词
     const prompt = buildPrompt(master, {
@@ -1194,8 +1424,8 @@ export async function getPalmistryAnalysisStream(
         const isServerHealthy = await checkServerHealth(serverUrl);
         
         if (isServerHealthy) {
-          console.log('后端服务器健康检查通过，使用服务器视觉流式API...');
-          return await getServerVisionStreamAnalysis(serverUrl, imageBase64, mimeType, prompt, onUpdate);
+          console.log(`后端服务器健康检查通过，使用服务器视觉${enableStreaming ? '流式' : '标准'}API...`);
+          return await getServerVisionAnalysis(serverUrl, imageBase64, mimeType, prompt, enableStreaming, onUpdate);
         } else {
           console.warn('后端服务器健康检查失败，降级到直接API调用');
         }

@@ -37,6 +37,13 @@ app.use(cors({
 
 app.use(express.json({ limit: process.env.MAX_FILE_SIZE || '10mb' }));
 
+// 时间格式化工具函数
+const getChinaTime = () => {
+  const now = new Date();
+  const chinaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)); // UTC+8
+  return chinaTime.toISOString().replace('T', ' ').substring(0, 19) + ' CST';
+};
+
 // 文件上传配置（用于手相分析）
 const upload = multer({
   limits: {
@@ -46,8 +53,9 @@ const upload = multer({
 
 // 日志中间件
 const logger = (req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path} - ${req.ip}`);
+  const timestamp = getChinaTime();
+  const userAgent = req.get('User-Agent') || 'Unknown';
+  console.log(`[${timestamp}] ${req.method} ${req.path} - ${req.ip} - UA: ${userAgent}`);
   next();
 };
 
@@ -117,7 +125,8 @@ let marqueeConfig = {
     "卦象显示，你我有缘相聚。投25号一票，结善缘，得福报！",
     "大师掐指一算，你是有福之人！投25号助力，福泽绵延！"
   ],
-  updateTime: Date.now()
+  updateTime: Date.now(),
+  updateTimeLocal: getChinaTime()
 };
 
 // 1. 健康检查
@@ -126,7 +135,7 @@ app.get('/api/health', (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     res.json({
       status: 'ok',
-      timestamp: new Date().toISOString(),
+      timestamp: getChinaTime(),
       apiConfigured: !!apiKey,
       version: '1.0.0'
     });
@@ -269,7 +278,8 @@ app.post('/api/gemini/stream', async (req, res) => {
               res.write(`data: ${JSON.stringify({
                 content: incrementalContent, // ⭐ 发送增量内容，不是累积内容
                 done: false,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                localTime: getChinaTime()
               })}\n\n`);
             }
           }
@@ -502,7 +512,8 @@ app.post('/api/gemini/vision-stream', upload.single('image'), async (req, res) =
                 res.write(`data: ${JSON.stringify({ 
                   text: fullText,
                   type: 'vision',
-                  timestamp: Date.now()
+                  timestamp: Date.now(),
+                  localTime: getChinaTime()
                 })}\n\n`);
                 
                 // 移除冗余日志：视觉流式数据更新
@@ -517,7 +528,8 @@ app.post('/api/gemini/vision-stream', upload.single('image'), async (req, res) =
                 finishReason: data.candidates[0].finishReason,
                 finalText: fullText,
                 type: 'vision',
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                localTime: getChinaTime()
               })}\n\n`);
               
               res.end();
@@ -613,7 +625,8 @@ app.get('/api/marquee', (req, res) => {
       return res.json({
         enabled: false,
         message: '',
-        updateTime: marqueeConfig.updateTime
+        updateTime: marqueeConfig.updateTime,
+        updateTimeLocal: marqueeConfig.updateTimeLocal
       });
     }
 
@@ -625,7 +638,8 @@ app.get('/api/marquee', (req, res) => {
     res.json({
       enabled: true,
       message: randomMessage,
-      updateTime: marqueeConfig.updateTime
+      updateTime: marqueeConfig.updateTime,
+      updateTimeLocal: marqueeConfig.updateTimeLocal
     });
 
   } catch (error) {
