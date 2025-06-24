@@ -15,6 +15,7 @@ import { forceCleanAllHistory } from './history';
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: '',
   sidebarCollapsed: false,
+  serverUrl: 'http://10.10.9.123:3001',
 };
 
 /**
@@ -33,6 +34,11 @@ export function validateSettings(settings: any): settings is Settings {
   }
 
   if (typeof settings.sidebarCollapsed !== 'boolean') {
+    return false;
+  }
+
+  // 检查可选字段
+  if (settings.serverUrl !== undefined && typeof settings.serverUrl !== 'string') {
     return false;
   }
 

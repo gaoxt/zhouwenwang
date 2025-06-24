@@ -37,7 +37,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   
   // 本地状态
   const [apiKey, setApiKey] = useState(settings.apiKey);
-  const [serverUrl, setServerUrl] = useState(settings.serverUrl || '');
+  const [serverUrl, setServerUrl] = useState(settings.serverUrl || 'http://10.10.9.123:3001');
   const [isLoading, setIsLoading] = useState(false);
   const [isTestingServer, setIsTestingServer] = useState(false);
   const [isTestingApiKey, setIsTestingApiKey] = useState(false);
@@ -50,7 +50,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // 当设置变化时更新本地状态
   useEffect(() => {
     setApiKey(settings.apiKey);
-    setServerUrl(settings.serverUrl || '');
+    setServerUrl(settings.serverUrl || 'http://10.10.9.123:3001');
     setStorageInfo(getStorageInfo());
   }, [settings.apiKey, settings.serverUrl]);
 

@@ -107,6 +107,19 @@ const errorHandler = (error, req, res, next) => {
 
 // ============= API 端点 =============
 
+// 跑马灯配置存储（实际项目中应使用数据库）
+let marqueeConfig = {
+  enabled: false,
+  messages: [
+    "大师观天象，见你与我有缘！投25号一票，结下仙缘，福运自来！",
+    "天机不可泄露，唯有有缘人可知。投25号，助我一臂之力，必有回报！",
+    "占卜千年，今日遇你，实乃天意！投25号支持，共沐祥瑞之光！",
+    "卦象显示，你我有缘相聚。投25号一票，结善缘，得福报！",
+    "大师掐指一算，你是有福之人！投25号助力，福泽绵延！"
+  ],
+  updateTime: Date.now()
+};
+
 // 1. 健康检查
 app.get('/api/health', (req, res) => {
   try {
@@ -592,6 +605,39 @@ app.get('/api/validate', async (req, res) => {
   }
 });
 
+// 7. 跑马灯消息接口
+app.get('/api/marquee', (req, res) => {
+  try {
+    
+    if (!marqueeConfig.enabled) {
+      return res.json({
+        enabled: false,
+        message: '',
+        updateTime: marqueeConfig.updateTime
+      });
+    }
+
+    // 随机选择一条消息
+    const randomMessage = marqueeConfig.messages[
+      Math.floor(Math.random() * marqueeConfig.messages.length)
+    ];
+
+    res.json({
+      enabled: true,
+      message: randomMessage,
+      updateTime: marqueeConfig.updateTime
+    });
+
+  } catch (error) {
+    console.error('跑马灯接口错误:', error);
+    res.status(500).json({
+      enabled: false,
+      message: '',
+      error: '获取跑马灯消息失败'
+    });
+  }
+});
+
 // 应用错误处理中间件
 app.use(errorHandler);
 
@@ -625,5 +671,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('  POST /api/gemini/vision   - 图像分析');
   console.log('  POST /api/gemini/vision-stream - 流式图像分析');
   console.log('  GET  /api/validate        - API密钥验证');
+  console.log('  GET  /api/marquee         - 🎯 跑马灯消息');
   console.log('\n');
 }); 

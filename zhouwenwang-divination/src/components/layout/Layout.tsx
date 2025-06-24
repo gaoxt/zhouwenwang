@@ -2,11 +2,13 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MainContent from './MainContent';
-import { useSettings, useMaster, useUI } from '../../core/store';
+import { MarqueeNotification } from '../common';
+import { useSettings, useMaster, useUI, useStore } from '../../core/store';
 import { fetchMasters, getDefaultMaster } from '../../masters/service';
 
 const Layout: React.FC = () => {
   const { settings } = useSettings();
+  const { updateSettings } = useStore();
   const { selectedMaster, setSelectedMaster, setAvailableMasters, initializeDefaultMaster } = useMaster();
   const { clearError } = useUI();
   const location = useLocation();
@@ -15,6 +17,26 @@ const Layout: React.FC = () => {
   useEffect(() => {
     clearError();
   }, [location.pathname, clearError]);
+
+  // 初始化设置 - 确保默认serverUrl被保存
+  useEffect(() => {
+    const initializeSettings = async () => {
+      // 如果没有设置serverUrl，保存默认值
+      if (!settings.serverUrl) {
+        try {
+          console.log('初始化默认服务器URL设置...');
+          await updateSettings({ 
+            serverUrl: 'http://10.10.9.123:3001'
+          });
+          console.log('默认服务器URL已设置');
+        } catch (error) {
+          console.error('初始化默认设置失败:', error);
+        }
+      }
+    };
+
+    initializeSettings();
+  }, []); // 只在组件挂载时执行一次
 
   // 初始化大师列表
   useEffect(() => {
@@ -56,6 +78,9 @@ const Layout: React.FC = () => {
 
   return (
     <div className="bg-black min-h-screen">
+      {/* 跑马灯通知 - 全局覆盖 */}
+      <MarqueeNotification apiBaseUrl={settings.serverUrl} />
+      
       <Sidebar />
       <div 
         className="transition-all duration-300 ease-in-out"

@@ -60,7 +60,7 @@ type AppStore = SettingsSlice & UISlice & MasterSlice & GameSlice;
 const defaultSettings: Settings = {
   apiKey: '',
   sidebarCollapsed: false,
-  serverUrl: undefined,
+  serverUrl: "http://10.10.9.123:3001",
 };
 
 /**
