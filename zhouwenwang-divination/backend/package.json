@@ -6,19 +6,35 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "pm2:dev": "pm2 start ecosystem.dev.config.js",
+    "pm2:prod": "pm2 start ecosystem.prod.config.js",
+    "pm2:stop:dev": "pm2 stop ecosystem.dev.config.js",
+    "pm2:stop:prod": "pm2 stop ecosystem.prod.config.js",
+    "pm2:restart:dev": "pm2 restart ecosystem.dev.config.js",
+    "pm2:restart:prod": "pm2 restart ecosystem.prod.config.js",
+    "pm2:delete:dev": "pm2 delete ecosystem.dev.config.js",
+    "pm2:delete:prod": "pm2 delete ecosystem.prod.config.js",
+    "pm2:logs": "pm2 logs",
+    "pm2:monit": "pm2 monit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["divination", "gemini", "api", "backend"],
+  "keywords": [
+    "divination",
+    "gemini",
+    "api",
+    "backend"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.19.2",
-    "cors": "^2.8.5",
     "axios": "^1.7.2",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "express": "^4.19.2",
     "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "pm2": "^6.0.8"
   }
-} 
+}

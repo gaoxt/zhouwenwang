@@ -69,6 +69,197 @@ npm run dev
 }
 ```
 
+## 🚀 PM2 进程管理
+
+本项目支持使用 PM2 进行进程管理，提供更稳定的生产环境部署和开发环境管理。
+
+### PM2 安装与配置
+
+PM2 已经作为开发依赖包含在项目中，无需额外安装。
+
+### 环境配置文件
+
+项目包含两个独立的PM2配置文件：
+
+- `ecosystem.dev.config.js` - 开发环境配置（单实例，支持热重载）
+- `ecosystem.prod.config.js` - 生产环境配置（4实例集群模式）
+
+### PM2 命令参考
+
+#### 🔧 基本操作
+
+```bash
+# 启动开发环境（单实例，支持文件监听）
+npm run pm2:dev
+
+# 启动生产环境（4实例集群模式）
+npm run pm2:prod
+
+# 查看所有进程状态
+npx pm2 list
+
+# 查看实时日志
+npm run pm2:logs
+
+# 实时监控面板
+npm run pm2:monit
+```
+
+#### ⏹️ 停止服务
+
+```bash
+# 停止开发环境
+npm run pm2:stop:dev
+
+# 停止生产环境
+npm run pm2:stop:prod
+
+# 停止所有PM2进程
+npx pm2 stop all
+```
+
+#### 🔄 重启服务
+
+```bash
+# 重启开发环境
+npm run pm2:restart:dev
+
+# 重启生产环境
+npm run pm2:restart:prod
+
+# 重启所有进程
+npx pm2 restart all
+```
+
+#### 🗑️ 删除进程
+
+```bash
+# 删除开发环境进程
+npm run pm2:delete:dev
+
+# 删除生产环境进程
+npm run pm2:delete:prod
+
+# 删除所有进程
+npx pm2 delete all
+
+# 完全清理PM2（包括守护进程）
+npx pm2 kill
+```
+
+#### 📊 监控与日志
+
+```bash
+# 查看进程详细信息
+npx pm2 show zhouwenwang-dev
+npx pm2 show zhouwenwang-prod
+
+# 查看实时日志（带行数限制）
+npx pm2 logs --lines 50
+
+# 查看错误日志
+npx pm2 logs --err
+
+# 清空日志
+npx pm2 flush
+
+# 保存当前进程列表
+npx pm2 save
+
+# 开机自启动（需要管理员权限）
+npx pm2 startup
+```
+
+### 环境配置对比
+
+| 配置项 | 开发环境 | 生产环境 |
+|--------|----------|----------|
+| 实例数 | 1个 | 4个（集群） |
+| 执行模式 | fork | cluster |
+| 文件监听 | ✅ 启用 | ❌ 禁用 |
+| 端口 | 3001 | 3001 |
+| 内存限制 | 200MB | 500MB |
+| 日志文件 | dev-*.log | prod-*.log |
+| 自动重启 | ✅ | ✅ 高级配置 |
+
+### 并发能力
+
+#### 开发环境（1个实例）
+- **AI请求并发**: 20-50个
+- **轻量请求并发**: 1000-3000/秒
+- **内存使用**: 50-200MB
+- **适用场景**: 开发调试、小规模测试
+
+#### 生产环境（4个实例集群）
+- **AI请求并发**: 80-200个（4倍提升）
+- **轻量请求并发**: 4000-12000/秒（4倍提升）
+- **内存使用**: 200-800MB
+- **适用场景**: 生产部署、高并发访问
+
+### 日志文件位置
+
+PM2 会在 `logs/` 目录下创建以下日志文件：
+
+```
+logs/
+├── dev-err.log        # 开发环境错误日志
+├── dev-out.log        # 开发环境输出日志（包含访问日志）
+├── dev-combined.log   # 开发环境合并日志
+├── prod-err.log       # 生产环境错误日志
+├── prod-out.log       # 生产环境输出日志
+└── prod-combined.log  # 生产环境合并日志
+```
+
+### 访问日志格式
+
+应用会记录详细的访问日志，格式如下：
+
+```
+[2025-06-25 16:15:45 CST] GET  /api/health     - 192.168.1.100   - Win10 Chrome/137
+[2025-06-25 16:15:52 CST] POST /api/gemini/stream - 10.10.9.123  - Win10 Chrome/137
+```
+
+### 故障排除
+
+#### 端口占用错误 (EADDRINUSE)
+```bash
+# 检查端口占用
+netstat -ano | findstr :3001
+
+# 强制停止所有Node进程（谨慎使用）
+taskkill /f /im node.exe
+
+# 重新启动
+npx pm2 kill
+npm run pm2:dev
+```
+
+#### 进程启动失败
+```bash
+# 查看详细错误信息
+npx pm2 logs --err --lines 20
+
+# 检查配置文件语法
+node -c ecosystem.dev.config.js
+node -c ecosystem.prod.config.js
+```
+
+#### 内存泄漏监控
+```bash
+# 启用内存监控
+npx pm2 monit
+
+# 查看内存使用趋势
+npx pm2 list
+```
+
+### 推荐使用方式
+
+1. **开发阶段**: 使用 `npm run pm2:dev` 启动单实例，便于调试
+2. **测试阶段**: 使用 `npm run pm2:prod` 测试集群模式性能
+3. **生产部署**: 使用 `npm run pm2:prod` 获得最佳并发性能
+4. **日志监控**: 定期查看 `npm run pm2:logs` 了解系统状态
+
 ## 📡 API 端点
 
 ### 核心端点

@@ -1,0 +1,30 @@
+# 依赖
+node_modules/
+
+# 环境变量
+.env
+.env.local
+.env.production
+
+# 日志文件
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# PM2 相关
+.pm2/
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 运行时数据
+lib-cov/
+coverage/
+.nyc_output/
+
+# 临时文件
+.tmp/
+.cache/ 
