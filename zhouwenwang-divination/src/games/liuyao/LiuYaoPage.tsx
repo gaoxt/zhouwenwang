@@ -5,7 +5,7 @@ import { generateHexagram, binaryToHexagramName, getYaoSymbol, getHexagramStruct
 import { getAIAnalysisStream } from '../../masters/service';
 import { useMaster, useUI } from '../../core/store';
 import { addRecord } from '../../core/history';
-import { StreamingMarkdown, ErrorToast } from '../../components/common';
+import { StreamingMarkdown, ErrorToast, useAutoScroll } from '../../components/common';
 import { getRandomQuestions } from '../../core/quickQuestions';
 import { getVideoPath } from '../../utils/resources';
 import type { DivinationRecord } from '../../types';
@@ -22,6 +22,12 @@ const LiuYaoPage = () => {
   const { selectedMaster } = useMaster();
   const { error, setError } = useUI();
   const navigate = useNavigate();
+  
+  // 使用通用的自动滚动Hook
+  const { contentRef: analysisRef } = useAutoScroll({
+    isAnalyzing: analyzing,
+    content: analysis
+  });
 
   // 自动清除错误提示
   useEffect(() => {
@@ -37,6 +43,8 @@ const LiuYaoPage = () => {
   useEffect(() => {
     setQuickQuestions(getRandomQuestions('liuyao', 3));
   }, []);
+
+
 
   // 动画变体
   const containerVariants = {
@@ -618,6 +626,7 @@ const LiuYaoPage = () => {
           {/* 大师分析结果 */}
           {analysis && (
             <motion.div 
+              ref={analysisRef}
               className="p-4"
               style={{ marginTop: '10rem' }}
               variants={itemVariants}

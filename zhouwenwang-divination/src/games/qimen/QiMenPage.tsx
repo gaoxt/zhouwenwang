@@ -13,7 +13,7 @@ import {
 import { getAIAnalysisStream } from '../../masters/service';
 import { addRecord } from '../../core/history';
 import { useMaster, useUI } from '../../core/store';
-import { StreamingMarkdown, ErrorToast } from '../../components/common';
+import { StreamingMarkdown, ErrorToast, useAutoScroll } from '../../components/common';
 import { getRandomQuestions } from '../../core/quickQuestions';
 import { getVideoPath } from '../../utils/resources';
 import type { DivinationRecord } from '../../types';
@@ -52,6 +52,12 @@ const QiMenPage = () => {
   const { selectedMaster } = useMaster();
   const { error, setError } = useUI();
   const navigate = useNavigate();
+  
+  // 使用通用的自动滚动Hook
+  const { contentRef: analysisRef } = useAutoScroll({
+    isAnalyzing: isAnalyzing,
+    content: aiAnalysis
+  });
 
   // 自动清除错误提示
   useEffect(() => {
@@ -804,6 +810,7 @@ const QiMenPage = () => {
           {/* 大师分析结果 */}
           {aiAnalysis && (
             <motion.div 
+              ref={analysisRef}
               className="p-4"
               variants={itemVariants}
               initial={{ opacity: 0, y: 20 }}

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { convertImageToBase64, getPalmistryAnalysisStream } from '../../masters/service';
 import { useMaster, useUI } from '../../core/store';
 import { addRecord } from '../../core/history';
-import { StreamingMarkdown, ErrorToast } from '../../components/common';
+import { StreamingMarkdown, ErrorToast, useAutoScroll } from '../../components/common';
 import { getVideoPath } from '../../utils/resources';
 import type { DivinationRecord } from '../../types';
 
@@ -38,6 +38,12 @@ const PalmistryPage: React.FC = () => {
 
   const { selectedMaster } = useMaster();
   const { error, setError } = useUI();
+  
+  // 使用通用的自动滚动Hook
+  const { contentRef: analysisRef } = useAutoScroll({
+    isAnalyzing: isAnalyzing,
+    content: analysisResult || ''
+  });
 
   // 自动清除错误提示
   useEffect(() => {
@@ -460,6 +466,7 @@ const PalmistryPage: React.FC = () => {
           {/* 分析结果显示 - 参考六爻页面的结果展示 */}
           {analysisResult && (
             <motion.div 
+              ref={analysisRef}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               variants={itemVariants}
