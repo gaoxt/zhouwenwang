@@ -226,10 +226,10 @@ function generatePalaces(
     const adjustedDoorIndex = palace.position === 5 ? 4 : (doorIndex + i) % EIGHT_DOORS.length; // 中宫用中门
     const door = EIGHT_DOORS[adjustedDoorIndex];
     
-    // 八神按照八宫排列（中宫不放八神）
+    // 八神按照传统八宫排列（中宫不放八神）
     let deity = '';
     if (palace.position === 5) {
-      // 中宫不放八神
+      // 中宫不放八神，符合传统奇门遁甲规则
       deity = '';
     } else {
       // 其他八宫按顺序放置八神

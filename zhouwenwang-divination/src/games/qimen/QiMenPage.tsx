@@ -357,7 +357,7 @@ const QiMenPage = () => {
                 >
                   
                   {/* 顶部：八神（小字，居中） */}
-                  <div className="text-center">
+                  <div className="text-center" style={{ minHeight: '20px' }}>
                     <span 
                       style={{
                         fontSize: '14px',
@@ -372,7 +372,7 @@ const QiMenPage = () => {
                   {/* 主体布局：左侧信息 + 右侧宫位名和五行 */}
                   <div 
                     className="flex items-center justify-between"
-                    style={{ paddingLeft: '4px', paddingRight: '4px' }}
+                    style={{ paddingLeft: '4px', paddingRight: '16px' }}
                   >
                     
                     {/* 左侧：垂直排列信息 */}
@@ -422,20 +422,21 @@ const QiMenPage = () => {
 
                     {/* 右侧：宫位名 + 五行 */}
                     <div 
-                      className="flex flex-col items-end justify-center"
-                      style={{ marginLeft: '8px', flex: '1' }}
+                      className="flex flex-col justify-center"
+                      style={{ marginLeft: '8px', flex: '1', alignItems: 'center', paddingRight: '20px', marginTop: '12px' }}
                     >
                       {/* 宫位名称（特大字，艺术效果） */}
                       <div 
                         style={{ 
-                          fontSize: '56px',
+                          fontSize: '48px',
                           fontWeight: '900',
                           color: wuxingColor,
                           fontFamily: '"Noto Serif SC", "STKaiti", "STSong", serif',
                           textShadow: `0 0 15px ${wuxingColor}AA, 0 0 25px ${wuxingColor}60`,
-                          letterSpacing: '3px',
+                          letterSpacing: '2px',
                           lineHeight: '1',
-                          marginBottom: '8px'
+                          marginBottom: '8px',
+                          textAlign: 'center'
                         }}
                       >
                         {palaceName}

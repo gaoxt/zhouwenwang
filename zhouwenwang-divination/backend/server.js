@@ -51,11 +51,71 @@ const upload = multer({
   }
 });
 
+// 解析User-Agent的函数
+const parseUserAgent = (userAgent) => {
+  if (!userAgent) return 'Unknown';
+  
+  // 检测操作系统
+  let os = 'Unknown OS';
+  if (userAgent.includes('Windows NT')) {
+    const match = userAgent.match(/Windows NT (\d+\.\d+)/);
+    if (match) {
+      const version = match[1];
+      const winVersions = {
+        '10.0': 'Win10',
+        '6.3': 'Win8.1',
+        '6.2': 'Win8',
+        '6.1': 'Win7'
+      };
+      os = winVersions[version] || `Win${version}`;
+    } else {
+      os = 'Windows';
+    }
+  } else if (userAgent.includes('Mac OS X')) {
+    os = 'macOS';
+  } else if (userAgent.includes('Linux')) {
+    if (userAgent.includes('Android')) {
+      os = 'Android';
+    } else {
+      os = 'Linux';
+    }
+  } else if (userAgent.includes('iPhone OS') || userAgent.includes('iOS')) {
+    os = 'iOS';
+  }
+  
+  // 检测浏览器
+  let browser = 'Unknown Browser';
+  if (userAgent.includes('Chrome/') && !userAgent.includes('Edg/')) {
+    const match = userAgent.match(/Chrome\/(\d+)/);
+    const version = match ? match[1] : '';
+    browser = `Chrome${version ? `/${version}` : ''}`;
+  } else if (userAgent.includes('Edg/')) {
+    const match = userAgent.match(/Edg\/(\d+)/);
+    const version = match ? match[1] : '';
+    browser = `Edge${version ? `/${version}` : ''}`;
+  } else if (userAgent.includes('Firefox/')) {
+    const match = userAgent.match(/Firefox\/(\d+)/);
+    const version = match ? match[1] : '';
+    browser = `Firefox${version ? `/${version}` : ''}`;
+  } else if (userAgent.includes('Safari/') && !userAgent.includes('Chrome/')) {
+    browser = 'Safari';
+  }
+  
+  return `${os} ${browser}`;
+};
+
 // 日志中间件
 const logger = (req, res, next) => {
   const timestamp = getChinaTime();
   const userAgent = req.get('User-Agent') || 'Unknown';
-  console.log(`[${timestamp}] ${req.method} ${req.path} - ${req.ip} - UA: ${userAgent}`);
+  const parsedUA = parseUserAgent(userAgent);
+  
+  // 固定各字段的宽度以确保对齐
+  const method = req.method.padEnd(4, ' ');        // GET, POST 等方法，固定4位
+  const path = req.path.padEnd(25, ' ');           // 路径，固定25位
+  const ip = req.ip.padEnd(15, ' ');               // IP地址，固定15位
+  
+  console.log(`[${timestamp}] ${method} ${path} - ${ip} - ${parsedUA}`);
   next();
 };
 
