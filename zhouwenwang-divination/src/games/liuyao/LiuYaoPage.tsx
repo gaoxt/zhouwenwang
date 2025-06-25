@@ -204,7 +204,11 @@ const LiuYaoPage = () => {
         type: 'liuyao',
         timestamp: Date.now(),
         data: divinationData,
-        master: selectedMaster.name,
+        master: {
+          id: selectedMaster.id,
+          name: selectedMaster.name,
+          description: selectedMaster.description
+        },
         analysis: analysisResult
       };
       await addRecord(record);
@@ -628,7 +632,7 @@ const LiuYaoPage = () => {
             <motion.div 
               ref={analysisRef}
               className="p-4"
-              style={{ marginTop: '10rem' }}
+              style={{ marginTop: '12rem' }}
               variants={itemVariants}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

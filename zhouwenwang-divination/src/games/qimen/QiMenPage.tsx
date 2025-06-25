@@ -254,7 +254,11 @@ const QiMenPage = () => {
         type: 'qimen',
         timestamp: Date.now(),
         data: analysisData,
-        master: selectedMaster.name,
+        master: {
+          id: selectedMaster.id,
+          name: selectedMaster.name,
+          description: selectedMaster.description
+        },
         analysis: analysisResult
       };
       await addRecord(record);

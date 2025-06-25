@@ -1,10 +1,19 @@
 import { Coins, Grid3X3, Hand } from 'lucide-react';
 import type { Game } from '../types';
+import { useAppStore } from '../core/store';
 
 // 游戏组件导入
 import LiuYaoPage from './liuyao/LiuYaoPage';
 import QiMenPage from './qimen/QiMenPage';
 import PalmistryPage from './palmistry/PalmistryPage';
+
+/**
+ * 获取当前选中的大师信息
+ * 用于数据生成时包含大师信息
+ */
+const getCurrentMaster = () => {
+  return useAppStore.getState().selectedMaster;
+};
 
 /**
  * 游戏注册表
@@ -20,10 +29,15 @@ const games: Game[] = [
     description: '通过摇卦的方式，获得六个爻位，形成卦象，进行占卜分析',
     order: 1,
     generateData: () => {
-      // 临时的数据生成函数，后续会实现具体逻辑
+      const currentMaster = getCurrentMaster();
       return {
         type: 'liuyao',
         timestamp: Date.now(),
+        master: currentMaster ? {
+          id: currentMaster.id,
+          name: currentMaster.name,
+          description: currentMaster.description
+        } : null,
         data: null
       };
     }
@@ -37,10 +51,15 @@ const games: Game[] = [
     description: '基于时间起盘，通过九宫八卦的组合，分析事物的发展趋势',
     order: 2,
     generateData: () => {
-      // 临时的数据生成函数，后续会实现具体逻辑
+      const currentMaster = getCurrentMaster();
       return {
         type: 'qimen',
         timestamp: Date.now(),
+        master: currentMaster ? {
+          id: currentMaster.id,
+          name: currentMaster.name,
+          description: currentMaster.description
+        } : null,
         data: null
       };
     }
@@ -54,10 +73,15 @@ const games: Game[] = [
     description: '上传手相图片，通过AI分析手掌纹路，解读命运轨迹',
     order: 3,
     generateData: () => {
-      // 临时的数据生成函数，后续会实现具体逻辑
+      const currentMaster = getCurrentMaster();
       return {
         type: 'palmistry',
         timestamp: Date.now(),
+        master: currentMaster ? {
+          id: currentMaster.id,
+          name: currentMaster.name,
+          description: currentMaster.description
+        } : null,
         data: null
       };
     }

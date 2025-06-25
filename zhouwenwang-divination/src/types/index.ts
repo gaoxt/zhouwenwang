@@ -4,6 +4,19 @@
  */
 
 /**
+ * 占卜记录中的大师信息接口
+ * 用于在占卜记录中存储大师的基本信息
+ */
+export interface DivinationMasterInfo {
+  /** 大师的唯一标识符 */
+  id: string;
+  /** 大师姓名 */
+  name: string;
+  /** 大师描述信息 */
+  description: string;
+}
+
+/**
  * 占卜记录接口
  * 用于存储用户的占卜历史记录
  */
@@ -16,10 +29,10 @@ export interface DivinationRecord {
   timestamp: number;
   /** 占卜数据，具体结构由不同游戏类型决定 */
   data: any;
-  /** 使用的大师ID */
-  master: string;
+  /** 使用的大师信息，包含ID、姓名和描述 */
+  master: DivinationMasterInfo | null;
   /** AI大师的分析结果 */
-  analysis: string;
+  analysis?: string;
 }
 
 /**

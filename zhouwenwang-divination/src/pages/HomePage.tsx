@@ -5,20 +5,19 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUI } from '../core/store';
+import { useUI, useMaster } from '../core/store';
 import { motion } from 'framer-motion';
 import { Star, Sparkles, Brain, Eye, Crown, Lightbulb, Compass, BookOpen, Hand } from 'lucide-react';
 import { getAllGames } from '../games';
-import { fetchMasters } from '../masters/service';
+import { fetchMasters, getDefaultMaster } from '../masters/service';
 import type { Master } from '../types';
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { clearError } = useUI();
+  const { selectedMaster, setSelectedMaster, availableMasters, setAvailableMasters } = useMaster();
   const games = getAllGames();
-  const [masters, setMasters] = useState<Master[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMaster, setSelectedMaster] = useState<Master | null>(null);
 
   // 图标映射函数
   const getIconComponent = (iconName?: string) => {
@@ -37,11 +36,22 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const loadMasters = async () => {
       try {
+        // 如果全局状态中已经有大师数据，则直接使用
+        if (availableMasters.length > 0) {
+          setLoading(false);
+          return;
+        }
+
         const mastersData = await fetchMasters();
-        setMasters(mastersData);
-        // 默认选中第一个大师
-        if (mastersData.length > 0) {
-          setSelectedMaster(mastersData[0]);
+        setAvailableMasters(mastersData);
+        
+        // 如果没有选中的大师，设置默认大师
+        if (!selectedMaster && mastersData.length > 0) {
+          const defaultMaster = getDefaultMaster(mastersData);
+          if (defaultMaster) {
+            console.log('首页设置默认大师:', defaultMaster);
+            setSelectedMaster(defaultMaster);
+          }
         }
       } catch (error) {
         console.error('加载大师数据失败:', error);
@@ -51,11 +61,16 @@ const HomePage: React.FC = () => {
     };
 
     loadMasters();
-  }, []);
+  }, [availableMasters, selectedMaster, setAvailableMasters, setSelectedMaster]);
 
   const handleGameClick = (path: string) => {
     clearError(); // 导航到游戏页面时清除错误
     navigate(path);
+  };
+
+  const handleMasterSelect = (master: Master) => {
+    console.log('首页选择大师:', master);
+    setSelectedMaster(master);
   };
 
   // 动画变体
@@ -238,7 +253,7 @@ const HomePage: React.FC = () => {
                 ) : (
                   <>
                     <div className="grid grid-cols-3 gap-4 mb-8">
-                      {masters.map((master, index) => {
+                      {availableMasters.map((master, index) => {
                         const IconComponent = getIconComponent(master.icon);
                         return (
                           <motion.div
@@ -251,7 +266,7 @@ const HomePage: React.FC = () => {
                             variants={itemVariants}
                             whileHover={{ scale: 1.02, y: -3 }}
                             transition={{ duration: 0.2 }}
-                            onClick={() => setSelectedMaster(master)}
+                            onClick={() => handleMasterSelect(master)}
                           >
                             <div className="flex flex-col justify-center items-center h-full text-center gap-2">
                               {IconComponent && (

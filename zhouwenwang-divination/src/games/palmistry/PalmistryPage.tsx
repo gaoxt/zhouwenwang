@@ -177,7 +177,11 @@ const PalmistryPage: React.FC = () => {
         type: 'palmistry',
         timestamp: Date.now(),
         data: palmistryData,
-        master: selectedMaster?.name || 'Unknown',
+        master: selectedMaster ? {
+          id: selectedMaster.id,
+          name: selectedMaster.name,
+          description: selectedMaster.description
+        } : null,
         analysis: analysisText
       };
 
@@ -363,7 +367,6 @@ const PalmistryPage: React.FC = () => {
                 </div>
               )}
             </div>
-
             {/* 分析按钮 */}
             {imageData && (
               <motion.div 
@@ -408,6 +411,57 @@ const PalmistryPage: React.FC = () => {
               </motion.div>
             )}
           </motion.div>
+
+          {/* 手相分析介绍 - 只在没有上传图片时显示 */}
+          {!imageData && (
+            <motion.div 
+              className="card card-interactive"
+              variants={itemVariants}
+            >
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-brand-gray-900/50 border border-[#333333] rounded-xl p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-3 h-3 bg-[#FF9900] rounded-full mr-3"></div>
+                    <h3 className="text-white font-semibold text-lg">生命线</h3>
+                  </div>
+                  <p className="text-brand-gray-300">
+                    健康状况和生命力分析
+                  </p>
+                </div>
+
+                <div className="bg-brand-gray-900/50 border border-[#333333] rounded-xl p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-3 h-3 bg-[#FF9900] rounded-full mr-3"></div>
+                    <h3 className="text-white font-semibold text-lg">智慧线</h3>
+                  </div>
+                  <p className="text-brand-gray-300">
+                    思维能力和性格特征解读
+                  </p>
+                </div>
+
+                <div className="bg-brand-gray-900/50 border border-[#333333] rounded-xl p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-3 h-3 bg-[#FF9900] rounded-full mr-3"></div>
+                    <h3 className="text-white font-semibold text-lg">感情线</h3>
+                  </div>
+                  <p className="text-brand-gray-300">
+                    情感状态和人际关系分析
+                  </p>
+                </div>
+
+                <div className="bg-brand-gray-900/50 border border-[#333333] rounded-xl p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-3 h-3 bg-[#FF9900] rounded-full mr-3"></div>
+                    <h3 className="text-white font-semibold text-lg">事业线</h3>
+                  </div>
+                  <p className="text-brand-gray-300">
+                    职业发展和成就潜力预测
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* 分析动画区域 - 参考六爻页面的摇卦动画 */}
           <AnimatePresence>

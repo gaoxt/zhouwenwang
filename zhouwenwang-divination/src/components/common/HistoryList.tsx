@@ -223,7 +223,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                       </div>
                       <div className="flex items-center">
                         <User className="h-3 w-3 mr-1" />
-                        {record.master}
+                        {record.master?.name || '未知大师'}
                       </div>
                     </div>
                   </div>
@@ -277,7 +277,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                   </div>
                   <div>
                     <span className="text-[#CCCCCC]">大师：</span>
-                    <span className="text-white">{selectedRecord.master}</span>
+                    <span className="text-white">{selectedRecord.master?.name || '未知大师'}</span>
                   </div>
                   <div>
                     <span className="text-[#CCCCCC]">时间：</span>
