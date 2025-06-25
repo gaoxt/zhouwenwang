@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUI, useMaster } from '../core/store';
 import { motion } from 'framer-motion';
-import { Star, Sparkles, Brain, Eye, Crown, Lightbulb, Compass, BookOpen, Hand } from 'lucide-react';
+import { Star, Sparkles, Brain, Eye, Crown, Lightbulb, Compass, BookOpen, Hand, Music, MessageCircle, Smile } from 'lucide-react';
 import { getAllGames } from '../games';
 import { fetchMasters, getDefaultMaster } from '../masters/service';
 import type { Master } from '../types';
@@ -28,6 +28,9 @@ const HomePage: React.FC = () => {
       Compass,
       BookOpen,
       Hand,
+      Music,
+      MessageCircle,
+      Smile,
     };
     
     return iconName ? iconMap[iconName] : null;
