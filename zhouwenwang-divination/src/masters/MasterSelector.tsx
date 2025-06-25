@@ -140,6 +140,7 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
             transition: 'all 0.3s ease',
             borderRadius: '10px',
             padding: '12px',
+            minHeight: compact ? '70px' : 'auto',
             border: `2px solid ${isSelected ? colors.primary : '#333333'}`,
             background: isSelected 
               ? 'rgba(255, 153, 0, 0.1)' 
@@ -201,7 +202,15 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
               )}
               
               {/* 大师信息 */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '4px',
+                justifyContent: 'flex-start',
+                paddingRight: '20px',
+                minHeight: compact ? '46px' : 'auto',
+                flex: 1
+              }}>
                 <h4 style={{
                   fontWeight: '500',
                   fontSize: '15px',
@@ -211,13 +220,17 @@ export const MasterSelector: React.FC<MasterSelectorProps> = ({
                   {master.name}
                 </h4>
                 <p style={{
-                  fontSize: '12px',
-                  lineHeight: '1.3',
+                  fontSize: '11px',
+                  lineHeight: '1.4',
                   color: isSelected ? colors.gray[300] : colors.gray[400],
                   margin: 0,
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
+                  display: '-webkit-box',
+                  WebkitLineClamp: compact ? 3 : 1,
+                  WebkitBoxOrient: 'vertical',
+                  wordBreak: 'break-word',
+                  flex: 1
                 }}>
                   {master.description}
                 </p>
