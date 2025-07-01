@@ -44,6 +44,10 @@ export const GEMINI_CONFIG = {
     topP: 1,
     // 最大输出令牌数
     maxOutputTokens: 4096,
+    // 停止序列 - 确保输出为中文
+    stopSequences: [],
+    // 候选响应数量
+    candidateCount: 1,
   },
   
   // 请求配置

@@ -657,9 +657,19 @@ const QiMenPage = () => {
                       <video 
                         autoPlay 
                         muted 
+                        playsInline
+                        preload="metadata"
                         className="w-full h-full object-cover rounded-xl"
                         style={{ width: '560px', height: '315px' }}
                         onEnded={handleVideoEnded}
+                        onError={(e) => {
+                          console.log('奇门视频加载失败，显示备用动画');
+                          const video = e.target as HTMLVideoElement;
+                          video.style.display = 'none';
+                        }}
+                        onCanPlayThrough={() => {
+                          console.log('奇门视频可以播放');
+                        }}
                       >
                         <source src={getVideoPath("qimen.mp4")} type="video/mp4" />
                         {/* 如果视频加载失败，显示备用动画 */}

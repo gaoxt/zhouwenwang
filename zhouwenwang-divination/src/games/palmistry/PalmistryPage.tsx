@@ -485,8 +485,18 @@ const PalmistryPage: React.FC = () => {
                         autoPlay 
                         muted 
                         loop 
+                        playsInline
+                        preload="metadata"
                         className="w-full h-full object-cover rounded-xl"
                         style={{ width: '560px', height: '315px' }}
+                        onError={(e) => {
+                          console.log('手相视频加载失败，显示备用动画');
+                          const video = e.target as HTMLVideoElement;
+                          video.style.display = 'none';
+                        }}
+                        onCanPlayThrough={() => {
+                          console.log('手相视频可以播放');
+                        }}
                       >
                         <source src={getVideoPath("palmistry.mp4")} type="video/mp4" />
                         {/* 如果视频加载失败，显示备用动画 */}

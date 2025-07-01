@@ -18,6 +18,7 @@ const LiuYaoPage = () => {
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [isDivining, setIsDivining] = useState(false);
   const [quickQuestions, setQuickQuestions] = useState<string[]>([]);
+  const [videoLoaded, setVideoLoaded] = useState(true); // 视频加载状态
 
   const { selectedMaster } = useMaster();
   const { error, setError } = useUI();
@@ -44,8 +45,6 @@ const LiuYaoPage = () => {
     setQuickQuestions(getRandomQuestions('liuyao', 3));
   }, []);
 
-
-
   // 动画变体
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -67,7 +66,18 @@ const LiuYaoPage = () => {
     }
   };
 
-
+  // 生成正确的爻名 - 统一函数
+  const getCorrectYaoName = (position: number, type: 'yin' | 'yang'): string => {
+    if (position === 6) {
+      return '上' + (type === 'yang' ? '九' : '六');
+    } else if (position === 1) {
+      return '初' + (type === 'yang' ? '九' : '六');
+    } else {
+      // 中间爻的格式：六二、九二、六三、九三、六四、九四、六五、九五
+      const positions = ['', '二', '三', '四', '五', ''];
+      return (type === 'yang' ? '九' : '六') + positions[position - 1];
+    }
+  };
 
   /**
    * 快速开始占卜
@@ -91,6 +101,7 @@ const LiuYaoPage = () => {
     }
 
     setIsDivining(true);
+    setVideoLoaded(true); // 重置视频状态
     setResult(null);
     setAnalysis('');
     setAnalyzing(false);
@@ -171,13 +182,18 @@ const LiuYaoPage = () => {
         question: question.trim(),
         originalHexagram: binaryToHexagramName(result.originalHexagram),
         changedHexagram: result.changedHexagram ? binaryToHexagramName(result.changedHexagram) : null,
-        yaos: result.yaos.map((yao, index) => ({
-          position: index + 1,
-          value: yao.value,
-          type: yao.type,
-          changing: yao.changing,
-          symbol: getYaoSymbol(yao)
-        })),
+        yaos: result.yaos.map((yao, index) => {
+          const position = index + 1;
+          
+          return {
+            position: position,
+            name: getCorrectYaoName(position, yao.type), // 使用统一的爻名生成函数
+            value: yao.value,
+            type: yao.type,
+            changing: yao.changing,
+            symbol: getYaoSymbol(yao)
+          };
+        }),
         changingPositions: result.changingPositions,
         hasChangingLines: result.hasChangingLines,
         timestamp: result.timestamp
@@ -242,8 +258,6 @@ const LiuYaoPage = () => {
             传承千年的六爻占卜智慧，通过摇卦的方式获得卦象，解读人生吉凶
           </p>
         </motion.div>
-
-
 
         <div className="space-y-8">
           {/* 问题输入区域 */}
@@ -338,31 +352,53 @@ const LiuYaoPage = () => {
                         autoPlay 
                         muted 
                         loop 
+                        playsInline
+                        preload="metadata"
                         className="w-full h-full object-cover rounded-xl"
-                        style={{ width: '560px', height: '315px' }}
+                        style={{ 
+                          width: '560px', 
+                          height: '315px',
+                          display: videoLoaded ? 'block' : 'none'
+                        }}
+                        onError={(e) => {
+                          console.log('视频加载失败，显示备用动画');
+                          setVideoLoaded(false);
+                        }}
+                        onCanPlayThrough={() => {
+                          console.log('视频可以播放');
+                          setVideoLoaded(true);
+                        }}
+                        onLoadStart={() => {
+                          console.log('视频开始加载');
+                        }}
                       >
                         <source src={getVideoPath("liuyao.mp4")} type="video/mp4" />
-                        {/* 如果视频加载失败，显示备用动画 */}
-                        <div className="relative">
-                          <motion.div
-                            className="w-16 h-16 border-4 border-[#FF9900] border-t-transparent rounded-full"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          />
-                          <motion.div
-                            className="absolute inset-4 border-2 border-[#CCCCCC] border-b-transparent rounded-full"
-                            animate={{ rotate: -360 }}
-                            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                          />
-                          <motion.div
-                            className="absolute inset-8 w-16 h-16 flex items-center justify-center"
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                          >
-                            <span className="text-[#FF9900] text-2xl font-bold">卦</span>
-                          </motion.div>
-                        </div>
                       </video>
+                      
+                      {/* 备用动画 - 只在视频加载失败时显示 */}
+                      {!videoLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="relative">
+                            <motion.div
+                              className="w-16 h-16 border-4 border-[#FF9900] border-t-transparent rounded-full"
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                            />
+                            <motion.div
+                              className="absolute inset-4 border-2 border-[#CCCCCC] border-b-transparent rounded-full"
+                              animate={{ rotate: -360 }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                            />
+                            <motion.div
+                              className="absolute inset-8 w-16 h-16 flex items-center justify-center"
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                            >
+                              <span className="text-[#FF9900] text-2xl font-bold">卦</span>
+                            </motion.div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -380,7 +416,6 @@ const LiuYaoPage = () => {
               {/* 与视频相同尺寸的卦象显示容器 */}
               <div className="flex justify-center">
                 <div style={{ width: '560px', height: '315px' }}>
-
 
                   {/* 卦象主体 - 深色卡片，填满剩余空间 */}
                   <motion.div 
@@ -459,19 +494,7 @@ const LiuYaoPage = () => {
                       {result.yaos.slice().reverse().map((yao, index) => {
                         const position = 6 - index;
                         // 根据爻的阴阳性质和位置生成正确的名称
-                        const getYaoName = (pos: number, type: string) => {
-                          if (pos === 6) {
-                            return '上' + (type === 'yang' ? '九' : '六');
-                          } else if (pos === 1) {
-                            return '初' + (type === 'yang' ? '九' : '六');
-                          } else {
-                            // 中间爻的格式：九二、六三、九四、六五
-                            const positions = ['初', '二', '三', '四', '五', '上'];
-                            return (type === 'yang' ? '九' : '六') + positions[pos - 1];
-                          }
-                        };
-                        
-                        const positionName = getYaoName(position, yao.type);
+                        const positionName = getCorrectYaoName(position, yao.type);
                         
                         return (
                           <motion.div 

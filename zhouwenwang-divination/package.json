@@ -10,7 +10,7 @@
     "dev-fast": "vite --host 0.0.0.0 --force",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "vite preview --host 0.0.0.0",
     "electron": "electron .",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && node scripts/electron-dev.js\"",
     "electron-pack": "npm run build && electron-builder",
@@ -19,7 +19,13 @@
     "dist-offline": "cross-env ELECTRON_BUILDER_CACHE=%LOCALAPPDATA%\\electron-builder\\Cache npm run build && electron-builder --publish=never",
     "dist-mac": "npm run build && electron-builder --mac --publish=never",
     "dist-win": "npm run build && electron-builder --win --publish=never",
-    "dist-linux": "npm run build && electron-builder --linux --publish=never"
+    "dist-linux": "npm run build && electron-builder --linux --publish=never",
+    "pm2:dev": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:delete": "pm2 delete ecosystem.config.cjs",
+    "pm2:list": "pm2 list",
+    "pm2:logs": "pm2 logs frontend-dev"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
@@ -47,6 +53,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
+    "pm2": "^6.0.8",
     "rimraf": "^6.0.1",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",

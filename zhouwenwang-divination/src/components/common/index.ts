@@ -3,6 +3,7 @@
  */
 
 export { ErrorToast } from './ErrorToast';
+export { default as GitHubLink } from './GitHubLink';
 export { HistoryList } from './HistoryList';
 export { default as MarkdownRenderer } from './MarkdownRenderer';
 export { MarqueeNotification } from './MarqueeNotification';

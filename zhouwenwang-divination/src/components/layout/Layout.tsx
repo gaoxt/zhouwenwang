@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MainContent from './MainContent';
-import { MarqueeNotification } from '../common';
+import { MarqueeNotification, GitHubLink } from '../common';
 import { useSettings, useMaster, useUI, useStore } from '../../core/store';
 import { fetchMasters, getDefaultMaster } from '../../masters/service';
 
@@ -80,6 +80,9 @@ const Layout: React.FC = () => {
     <div className="bg-black min-h-screen">
       {/* 跑马灯通知 - 全局覆盖 */}
       <MarqueeNotification apiBaseUrl={settings.serverUrl} />
+      
+      {/* GitHub 链接 - 固定在右上角 */}
+      <GitHubLink />
       
       <Sidebar />
       <div 
