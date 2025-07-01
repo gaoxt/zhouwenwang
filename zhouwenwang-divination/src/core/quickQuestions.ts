@@ -2,6 +2,7 @@ export interface QuickQuestionConfig {
   liuyao: string[];
   qimen: string[];
   palmistry: string[];
+  zhougong: string[];
 }
 
 // 快速开始问题配置
@@ -47,6 +48,20 @@ export const quickQuestionsConfig: QuickQuestionConfig = {
     '子女运势如何？',
     '我的性格特点是什么？',
     '需要注意哪些方面？'
+  ],
+  zhougong: [
+    '梦见蛇是什么意思？',
+    '梦见死人说明什么？',
+    '梦见水预示着什么？',
+    '梦见考试失败怎么办？',
+    '梦见飞翔代表什么？',
+    '梦见迷路有何含义？',
+    '梦见结婚是好事吗？',
+    '梦见掉牙齿什么征兆？',
+    '梦见老家的房子',
+    '梦见已故的亲人',
+    '梦见捡到钱财',
+    '梦见被人追赶'
   ]
 };
 

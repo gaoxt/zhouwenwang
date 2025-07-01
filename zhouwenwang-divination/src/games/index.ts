@@ -1,4 +1,4 @@
-import { Coins, Grid3X3, Hand } from 'lucide-react';
+import { Coins, Grid3X3, Hand, Moon } from 'lucide-react';
 import type { Game } from '../types';
 import { useAppStore } from '../core/store';
 
@@ -6,6 +6,7 @@ import { useAppStore } from '../core/store';
 import LiuYaoPage from './liuyao/LiuYaoPage';
 import QiMenPage from './qimen/QiMenPage';
 import PalmistryPage from './palmistry/PalmistryPage';
+import ZhouGongPage from './zhougong/ZhouGongPage';
 
 /**
  * 获取当前选中的大师信息
@@ -76,6 +77,28 @@ const games: Game[] = [
       const currentMaster = getCurrentMaster();
       return {
         type: 'palmistry',
+        timestamp: Date.now(),
+        master: currentMaster ? {
+          id: currentMaster.id,
+          name: currentMaster.name,
+          description: currentMaster.description
+        } : null,
+        data: null
+      };
+    }
+  },
+  {
+    id: 'zhougong',
+    name: '周公解梦',
+    path: '/zhougong',
+    component: ZhouGongPage,
+    icon: Moon,
+    description: '承古圣贤智慧，解析梦境奥秘，窥探潜意识深处的神秘信息',
+    order: 4,
+    generateData: () => {
+      const currentMaster = getCurrentMaster();
+      return {
+        type: 'zhougong',
         timestamp: Date.now(),
         master: currentMaster ? {
           id: currentMaster.id,

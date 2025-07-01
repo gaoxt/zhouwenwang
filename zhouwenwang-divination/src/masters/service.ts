@@ -293,7 +293,8 @@ function getGameSpecificPrompt(master: Master, gameType: string): string | null 
   const gamePrompts: Record<string, string> = {
     'liuyao': getLiuYaoPrompt(master),
     'qimen': getQiMenPrompt(master),
-    'palmistry': getPalmistryPrompt(master)
+    'palmistry': getPalmistryPrompt(master),
+    'zhougong': getZhouGongPrompt(master)
   };
   
   return gamePrompts[gameType] || null;
@@ -336,23 +337,8 @@ function getLiuYaoPrompt(master: Master): string {
 - 语言要体现你的风格特色，分析要深入透彻，建议要实用可行
 - 回复需控制在800字以内，重点突出，避免冗余`;
 
-  // 根据不同大师添加个性化内容
-  switch (master.id) {
-    case 'zhouwenwang':
-      return `作为易经创始人，精通六爻占卜。${basePrompt.replace('语言要体现你的风格特色', '语言要古朴典雅，体现易学智慧')}`;
-    case 'zhugeliang':
-      return `通晓易理，善于从卦象中洞察先机。${basePrompt.replace('语言要体现你的风格特色', '语言要儒雅睿智').replace('综合建议', '战略建议')}请重点分析形势变化和战略布局，给出切实可行的策略建议。`;
-    case 'guiguzi':
-      return `深谙易理和人心变化。${basePrompt.replace('语言要体现你的风格特色', '语言要神秘深邃，富有哲理')}请透过六爻卦象洞察问题本质，重点分析人事关系和机遇变化。`;
-    case 'yuanshoucheng':
-      return `精通六爻神算。${basePrompt.replace('语言要体现你的风格特色', '语言要有仙风道骨')}请运用你的术数功底详细解读卦象，重点预测事情的发展趋势和结果，给出明确的吉凶判断。`;
-    case 'libowen':
-      return `对六爻理论有深入研究。${basePrompt.replace('语言要体现你的风格特色', '语言要儒雅严谨')}请运用你的博学和严谨，全面解读卦象的各个层面，引经据典。`;
-    case 'chentunan':
-      return `精通易理相术。${basePrompt.replace('语言要体现你的风格特色', '语言要平和睿智')}请从相学角度结合六爻卦象，分析问题的人事因素和发展走向。`;
-    default:
-      return basePrompt.replace('语言要体现你的风格特色', '语言要符合你的性格特点');
-  }
+  // 使用统一的配置系统，优先从gamePrompts获取，降级到硬编码
+  return `你是${master.name}。${basePrompt}请结合你的专长进行六爻分析。`;
 }
 
 /**
@@ -391,22 +377,56 @@ function getQiMenPrompt(master: Master): string {
 - 使用项目符号和编号列表组织内容
 - 回复需控制在800字以内，重点突出，避免冗余`;
 
-  switch (master.id) {
-    case 'zhouwenwang':
-      return `精通奇门遁甲之术。${basePrompt}语言要体现帝王之智和易学功底。`;
-    case 'zhugeliang':
-      return `奇门遁甲大师。${basePrompt}请运用你的奇门之术详细分析盘局，从战略层面解读天时地利人和，体现你运筹帷幄的智慧。`;
-    case 'guiguzi':
-      return `精通奇门玄学。${basePrompt}请运用你的纵横智慧分析奇门盘局，从人事布局角度解读形势，给出权谋策略和进退之道。`;
-    case 'yuanshoucheng':
-      return `通晓奇门秘术。${basePrompt}请深度分析奇门盘象，预测事件发展脉络，给出精准的时间节点和行动指导。`;
-    case 'libowen':
-      return `通晓奇门易理。${basePrompt}请系统分析奇门盘局的理论依据和实际应用，给出学理并重的解读和指导。`;
-    case 'chentunan':
-      return `通晓奇门相术。${basePrompt}请结合相学智慧分析奇门盘局中的人事关系，给出人际交往和发展规划的建议。`;
-    default:
-      return basePrompt;
-  }
+  // 使用统一的配置系统，优先从gamePrompts获取，降级到硬编码
+  return `你是${master.name}。${basePrompt}请结合你的专长进行奇门遁甲分析。`;
+}
+
+/**
+ * 获取周公解梦的特定提示词
+ * @param master 大师对象
+ * @returns 周公解梦提示词
+ */
+function getZhouGongPrompt(master: Master): string {
+  const basePrompt = `请按照以下格式解读用户的梦境（控制在800字以内）：
+
+## 🌙 周公解梦分析
+
+### 1. 梦境整体解读
+- **梦境主题**：识别梦境的核心主题和象征意义
+- **情感基调**：分析梦境中的情感氛围和心理状态
+- **关键要素**：解读梦境中的重要元素和符号
+
+### 2. 象征意义分析
+- **传统寓意**：根据周公解梦传统解释象征含义
+- **心理层面**：从现代心理学角度分析潜意识表达
+- **现实映射**：分析梦境与现实生活的对应关系
+
+### 3. 吉凶判断
+- **运势预示**：分析梦境对未来运势的预示
+- **警示信息**：提取梦境中的警示或提醒信息
+- **机遇暗示**：解读梦境中隐含的机遇信息
+
+### 4. 现实指导
+- **行动建议**：基于梦境分析给出实际行动建议
+- **心理调节**：提供心理调节和情绪管理建议
+- **注意事项**：给出生活中需要注意的事项
+
+### 5. 总结
+- **核心要点**：简明扼要地总结梦境的核心信息
+- **指导方向**：给出具体的人生指导方向
+
+**注意事项**：
+- 必须使用Markdown格式输出
+- 使用合适的标题层级（##、###、####）
+- 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用
+- 使用项目符号和编号列表组织内容
+- 语言要体现你的风格特色，分析要深入透彻，建议要实用可行
+- 回复需控制在800字以内，重点突出，避免冗余
+- 结合传统周公解梦理论和现代心理学观点进行分析
+- 梦境分析要从象征意义、心理暗示、现实指导三个层面展开`;
+
+  // 使用统一的配置系统，优先从gamePrompts获取，降级到硬编码
+  return `你是${master.name}。${basePrompt}请结合你的专长进行梦境解读。`;
 }
 
 /**
