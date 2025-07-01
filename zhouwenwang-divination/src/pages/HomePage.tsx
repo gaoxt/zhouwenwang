@@ -159,27 +159,27 @@ const HomePage: React.FC = () => {
 
         {/* 主要内容区域 - 弹性布局 */}
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-16 items-start">
+          <div className="flex gap-16 items-stretch">
             
             {/* 左侧：占卜类型 */}
             <motion.section 
-              className="flex-1 space-y-8"
+              className="flex-1 space-y-4"
               variants={itemVariants}
             >
               <motion.div 
-                className="text-center mb-8"
+                className="text-center mb-4"
                 variants={itemVariants}
               >
-                <h2 className="text-3xl font-bold mb-4">
+                <h2 className="text-2xl font-bold mb-2">
                   古老智慧
                 </h2>
-                <p className="text-[#CCCCCC] text-lg">
+                <p className="text-[#CCCCCC] text-base">
                   选择您感兴趣的占卜方式，开启智慧之旅
                 </p>
               </motion.div>
 
               {/* 占卜游戏垂直排列 */}
-              <div className="space-y-6">
+              <div className="space-y-3">
                 {games.map((game, index) => {
                   const IconComponent = game.icon;
                   return (
@@ -191,20 +191,20 @@ const HomePage: React.FC = () => {
                       onClick={() => handleGameClick(game.path)}
                     >
                       <motion.div
-                        className="bg-[#111111] border border-[#333333] rounded-xl p-6 transition-all duration-300 hover:border-[#FF9900] hover:shadow-lg hover:shadow-[#FF9900]/20"
+                        className="bg-[#111111] border border-[#333333] rounded-xl p-4 transition-all duration-300 hover:border-[#FF9900] hover:shadow-lg hover:shadow-[#FF9900]/20"
                         variants={cardHoverVariants}
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                           {IconComponent && (
                             <motion.div 
-                              className="text-[#FF9900] p-3 bg-[#FF9900]/10 rounded-lg flex-shrink-0 icon-rotate-on-hover"
+                              className="text-[#FF9900] p-2 bg-[#FF9900]/10 rounded-lg flex-shrink-0 icon-rotate-on-hover"
                             >
-                              <IconComponent size={32} />
+                              <IconComponent size={24} />
                             </motion.div>
                           )}
                           <div className="flex-1">
-                            <h3 className="text-xl font-semibold text-white mb-2">{game.name}</h3>
-                            <p className="text-[#CCCCCC] leading-relaxed">
+                            <h3 className="text-lg font-semibold text-white mb-1">{game.name}</h3>
+                            <p className="text-[#CCCCCC] text-sm leading-relaxed">
                               {game.description}
                             </p>
                           </div>
@@ -219,27 +219,27 @@ const HomePage: React.FC = () => {
               </div>
             </motion.section>
 
-            {/* 右侧：弹性布局内容区域 */}
+            {/* 右侧：大师团队区域 - 匹配左侧高度 */}
             <motion.section 
-              className="flex-1 flex flex-col"
+              className="flex-1 flex flex-col h-full"
               variants={itemVariants}
             >
               {/* 顶部标题区域 */}
               <motion.div 
-                className="text-center mb-8"
+                className="text-center mb-4"
                 variants={itemVariants}
               >
-                <h2 className="text-3xl font-bold mb-4">
+                <h2 className="text-2xl font-bold mb-2">
                   大师团队
                 </h2>
-                <p className="text-[#CCCCCC] text-lg">
+                <p className="text-[#CCCCCC] text-base">
                   历代易学宗师的智慧结晶，为您提供专业的占卜分析
                 </p>
               </motion.div>
 
-              {/* AI大师角色卡片区域 */}
+              {/* AI大师角色卡片区域 - 填充剩余空间并居中对齐 */}
               <motion.div 
-                className="flex-1"
+                className="flex-1 flex flex-col justify-center"
                 variants={itemVariants}
               >
                 
@@ -255,13 +255,13 @@ const HomePage: React.FC = () => {
                   </motion.div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-3 gap-4 mb-8">
+                    <div className="grid grid-cols-3 gap-3 mb-4">
                       {availableMasters.map((master, index) => {
                         const IconComponent = getIconComponent(master.icon);
                         return (
                           <motion.div
                             key={master.id}
-                            className={`bg-[#111111] border rounded-xl p-6 transition-all duration-300 hover:shadow-lg cursor-pointer h-32 ${
+                            className={`bg-[#111111] border rounded-xl p-4 transition-all duration-300 hover:shadow-lg cursor-pointer h-24 ${
                               selectedMaster?.id === master.id 
                                 ? 'border-[#FF9900] shadow-lg shadow-[#FF9900]/20' 
                                 : 'border-[#333333] hover:border-[#FF9900] hover:shadow-[#FF9900]/10'
@@ -271,15 +271,15 @@ const HomePage: React.FC = () => {
                             transition={{ duration: 0.2 }}
                             onClick={() => handleMasterSelect(master)}
                           >
-                            <div className="flex flex-col justify-center items-center h-full text-center gap-2">
+                            <div className="flex flex-col justify-center items-center h-full text-center gap-1">
                               {IconComponent && (
                                 <IconComponent 
-                                  size={24} 
+                                  size={20} 
                                   className="text-[#FF9900] flex-shrink-0" 
                                 />
                               )}
-                              <div className="flex flex-col items-center gap-1">
-                                <h4 className="text-lg font-bold text-white">{master.name}</h4>
+                              <div className="flex flex-col items-center gap-0.5">
+                                <h4 className="text-sm font-bold text-white">{master.name}</h4>
                                 {master.dynasty && (
                                   <span className="text-xs text-[#888888]">{master.dynasty}</span>
                                 )}
@@ -293,12 +293,12 @@ const HomePage: React.FC = () => {
                     {/* 选中大师的详细介绍 */}
                     {selectedMaster && (
                       <motion.div 
-                        className="bg-[#111111] border border-[#333333] rounded-xl p-6 text-center"
+                        className="bg-[#111111] border border-[#333333] rounded-xl p-4 text-center"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                       >
-                        <h4 className="text-lg font-bold text-white mb-3">{selectedMaster.name}</h4>
+                        <h4 className="text-base font-bold text-white mb-2">{selectedMaster.name}</h4>
                         <p className="text-[#CCCCCC] leading-relaxed text-sm">
                           {selectedMaster.description}
                         </p>

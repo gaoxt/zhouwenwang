@@ -1,12 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { 
-  analyzeDream, 
-  getFortuneDescription, 
-  dreamCategories,
-  type DreamAnalysisResult 
-} from './logic';
 import { getAIAnalysisStream } from '../../masters/service';
 import { useMaster, useUI } from '../../core/store';
 import { addRecord } from '../../core/history';
@@ -17,11 +11,10 @@ import type { DivinationRecord } from '../../types';
 
 const ZhouGongPage = () => {
   const [dreamDescription, setDreamDescription] = useState<string>('');
-  const [result, setResult] = useState<DreamAnalysisResult | null>(null);
   const [analysis, setAnalysis] = useState<string>('');
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
-  const [isAnalyzingDream, setIsAnalyzingDream] = useState(false);
+  const [showLoadingAnimation, setShowLoadingAnimation] = useState(false);
   const [quickQuestions, setQuickQuestions] = useState<string[]>([]);
   const [videoLoaded, setVideoLoaded] = useState(true);
 
@@ -78,52 +71,18 @@ const ZhouGongPage = () => {
     setDreamDescription(selectedDream);
     
     setTimeout(() => {
-      performDreamAnalysisWithText(selectedDream);
+      performDreamAnalysis(selectedDream);
     }, 200);
   };
 
   /**
-   * 执行梦境分析（带描述参数）
+   * 执行梦境分析 - 直接调用大模型
    */
-  const performDreamAnalysisWithText = async (dreamText: string) => {
-    if (!dreamText.trim()) {
-      setError('请输入您的梦境内容');
-      return;
-    }
-
-    setIsAnalyzingDream(true);
-    setVideoLoaded(true);
-    setResult(null);
-    setAnalysis('');
-    setAnalyzing(false);
-    setAnalysisComplete(false);
+  const performDreamAnalysis = async (dreamText?: string) => {
+    const dreamToAnalyze = dreamText || dreamDescription;
     
-    // 模拟解梦分析动画时间
-    setTimeout(() => {
-      const dreamResult = analyzeDream(dreamText);
-      setResult(dreamResult);
-      setIsAnalyzingDream(false);
-    }, 3000);
-  };
-
-  /**
-   * 执行梦境分析
-   */
-  const performDreamAnalysis = async () => {
-    await performDreamAnalysisWithText(dreamDescription);
-  };
-
-  /**
-   * 获取AI分析（流式处理）
-   */
-  const getAnalysis = async () => {
-    if (!result) {
-      setError('请先进行梦境分析');
-      return;
-    }
-
-    if (!dreamDescription.trim()) {
-      setError('请输入梦境描述');
+    if (!dreamToAnalyze.trim()) {
+      setError('请输入您的梦境内容');
       return;
     }
 
@@ -132,26 +91,19 @@ const ZhouGongPage = () => {
       return;
     }
 
-    setAnalyzing(true);
-    setAnalysisComplete(false);
-    setError(null);
-    setAnalysis('');
-
     try {
-      // 构建解梦数据，包含用户梦境描述
+      setAnalyzing(true);
+      setError(null);
+      setAnalysis('');
+      setAnalysisComplete(false);
+      setShowLoadingAnimation(true);
+      setVideoLoaded(true);
+
+      // 构建解梦数据
       const divinationData = {
         type: 'zhougong',
-        dreamDescription: dreamDescription.trim(),
-        keywords: result.keywords,
-        categories: result.categories.map(cat => ({
-          id: cat.id,
-          name: cat.name,
-          description: cat.description
-        })),
-        symbolism: result.symbolism,
-        fortune: result.fortune,
-        fortuneDescription: getFortuneDescription(result.fortune).text,
-        timestamp: result.timestamp
+        dreamDescription: dreamToAnalyze.trim(),
+        timestamp: Date.now()
       };
 
       // 使用流式分析，实时更新结果
@@ -161,7 +113,11 @@ const ZhouGongPage = () => {
         'zhougong',
         undefined,
         (streamText) => {
-          setAnalysis(streamText);
+          // 流式更新回调 - 当开始有内容返回时，隐藏动画显示结果
+          if (streamText && streamText.trim()) {
+            setShowLoadingAnimation(false);
+            setAnalysis(streamText);
+          }
         }
       );
 
@@ -188,8 +144,11 @@ const ZhouGongPage = () => {
       setAnalysisComplete(false);
     } finally {
       setAnalyzing(false);
+      setShowLoadingAnimation(false);
     }
   };
+
+  const canStartAnalysis = dreamDescription.trim() && selectedMaster && !analyzing && !analysisComplete;
 
   return (
     <motion.div 
@@ -229,20 +188,20 @@ const ZhouGongPage = () => {
                   backgroundColor: '#222222',
                   borderRadius: '12px'
                 }}
-                disabled={isAnalyzingDream}
+                disabled={analyzing}
               />
               <motion.button 
-                onClick={performDreamAnalysis}
-                disabled={isAnalyzingDream || !dreamDescription.trim()}
+                onClick={() => performDreamAnalysis()}
+                disabled={!canStartAnalysis}
                 className={`px-8 py-3 h-[46px] rounded-xl font-bold text-lg transition-all duration-300 shadow-lg whitespace-nowrap flex items-center justify-center ${
-                  isAnalyzingDream || !dreamDescription.trim()
+                  !canStartAnalysis
                     ? 'bg-[#444444] text-[#888888] cursor-not-allowed'
                     : 'bg-gradient-to-r from-[#FF9900] to-[#E68A00] text-black hover:from-[#E68A00] hover:to-[#CC7700] hover:shadow-xl hover:shadow-[#FF9900]/30'
                 }`}
-                whileHover={!isAnalyzingDream && dreamDescription.trim() ? { scale: 1.05, y: -2 } : {}}
-                whileTap={!isAnalyzingDream && dreamDescription.trim() ? { scale: 0.98 } : {}}
+                whileHover={canStartAnalysis ? { scale: 1.05, y: -2 } : {}}
+                whileTap={canStartAnalysis ? { scale: 0.98 } : {}}
               >
-                {isAnalyzingDream ? (
+                {analyzing ? (
                   <span className="flex items-center gap-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
                     正在解梦...
@@ -260,12 +219,12 @@ const ZhouGongPage = () => {
                 {quickQuestions.map((quickDream, index) => (
                   <motion.span
                     key={index}
-                    onClick={() => !isAnalyzingDream && quickStart(quickDream)}
+                    onClick={() => !analyzing && quickStart(quickDream)}
                     className={`px-4 py-2 text-[#CCCCCC] text-sm cursor-pointer hover:text-[#FF9900] transition-all duration-300 ${
-                      isAnalyzingDream ? 'opacity-50 cursor-not-allowed' : ''
+                      analyzing ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
-                    whileHover={!isAnalyzingDream ? { scale: 1.05, y: -2 } : {}}
-                    whileTap={!isAnalyzingDream ? { scale: 0.98 } : {}}
+                    whileHover={!analyzing ? { scale: 1.05, y: -2 } : {}}
+                    whileTap={!analyzing ? { scale: 0.98 } : {}}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
@@ -275,11 +234,25 @@ const ZhouGongPage = () => {
                 ))}
               </div>
             </div>
+
+            {/* 没有选择大师时的提示 */}
+            {!selectedMaster && (
+              <div className="flex justify-center mt-4">
+                <motion.button 
+                  onClick={() => navigate('/settings')}
+                  className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all duration-300 shadow-lg"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  前往设置选择大师
+                </motion.button>
+              </div>
+            )}
           </motion.div>
 
           {/* 解梦动画区域 */}
           <AnimatePresence>
-            {isAnalyzingDream && (
+            {showLoadingAnimation && (
               <motion.div 
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -370,178 +343,8 @@ const ZhouGongPage = () => {
             )}
           </AnimatePresence>
 
-          {/* 梦境分析结果显示 */}
-          {result && !isAnalyzingDream && (
-            <motion.div 
-              variants={itemVariants}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="flex justify-center">
-                <div style={{ width: '560px', minHeight: '315px' }}>
-                  <motion.div 
-                    className="bg-[#1a1a1a] border border-[#333] p-6 flex flex-col"
-                    style={{ 
-                      borderRadius: '16px',
-                      overflow: 'hidden'
-                    }}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    {/* 梦境标题和吉凶 */}
-                    <div className="text-center mb-6">
-                      <div className="flex items-center justify-center gap-8">
-                        <h3 
-                          style={{ 
-                            fontSize: '32px',
-                            fontWeight: '900',
-                            color: '#3B82F6',
-                            fontFamily: '"Noto Serif SC", "STKaiti", "STSong", serif',
-                            textShadow: '0 0 15px rgba(59, 130, 246, 0.6)',
-                            letterSpacing: '4px',
-                            lineHeight: '1'
-                          }}
-                        >
-                          梦境解析
-                        </h3>
-                        
-                        {/* 吉凶显示 */}
-                        <div className="flex flex-col items-center gap-2">
-                          {(() => {
-                            const fortuneInfo = getFortuneDescription(result.fortune);
-                            return (
-                              <>
-                                <div 
-                                  style={{ 
-                                    fontSize: '24px',
-                                    fontWeight: '800',
-                                    color: fortuneInfo.color,
-                                    textShadow: `0 0 10px ${fortuneInfo.color}`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                  }}
-                                >
-                                  <span>{fortuneInfo.emoji}</span>
-                                  <span>{fortuneInfo.text}</span>
-                                </div>
-                              </>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 分类标签 */}
-                    <div className="mb-4">
-                      <h4 className="text-[#CCCCCC] text-sm font-medium mb-2">梦境分类：</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {result.categories.map((category, index) => (
-                          <motion.span
-                            key={category.id}
-                            className="px-3 py-1 rounded-full text-sm font-medium"
-                            style={{
-                              backgroundColor: `${category.color}20`,
-                              color: category.color,
-                              border: `1px solid ${category.color}40`
-                            }}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.1 }}
-                          >
-                            {category.name}
-                          </motion.span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* 关键词显示 */}
-                    {result.keywords.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="text-[#CCCCCC] text-sm font-medium mb-2">关键词：</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {result.keywords.map((keyword, index) => (
-                            <motion.span
-                              key={index}
-                              className="px-2 py-1 bg-[#333] text-[#FF9900] rounded text-sm"
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: index * 0.05 }}
-                            >
-                              {keyword}
-                            </motion.span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 象征意义 */}
-                    <div className="mb-6">
-                      <h4 className="text-[#CCCCCC] text-sm font-medium mb-2">象征意义：</h4>
-                      <div className="space-y-1">
-                        {result.symbolism.map((symbol, index) => (
-                          <motion.div
-                            key={index}
-                            className="text-[#EEEEEE] text-sm flex items-center gap-2"
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                          >
-                            <span className="text-[#FF9900]">•</span>
-                            <span>{symbol}</span>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* 大师分析按钮 */}
-                    <div>
-                      <motion.button 
-                        onClick={getAnalysis}
-                        disabled={analyzing || !selectedMaster || analysisComplete}
-                        className={`w-full px-4 py-3 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg ${
-                          analyzing || !selectedMaster || analysisComplete
-                            ? 'bg-[#444444] cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30'
-                        }`}
-                        style={{ color: '#ffffff' }}
-                        whileHover={!analyzing && selectedMaster && !analysisComplete ? { scale: 1.02 } : {}}
-                        whileTap={!analyzing && selectedMaster && !analysisComplete ? { scale: 0.98 } : {}}
-                      >
-                        {analyzing ? (
-                          <span className="flex items-center justify-center gap-3" style={{ color: '#ffffff' }}>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2" style={{ borderColor: '#ffffff' }}></div>
-                            <span style={{ color: '#ffffff' }}>
-                              {analysis ? `${selectedMaster?.name}正在分析...` : `${selectedMaster?.name}解梦中...`}
-                            </span>
-                          </span>
-                        ) : (
-                          <span style={{ color: '#ffffff' }}>
-                            {analysisComplete ? `${selectedMaster?.name}解梦完成` : '大师解梦'}
-                          </span>
-                        )}
-                      </motion.button>
-                      
-                      {!selectedMaster && (
-                        <motion.button 
-                          onClick={() => navigate('/settings')}
-                          className="w-full mt-2 bg-green-600 text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all duration-300 shadow-lg"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          前往设置选择大师
-                        </motion.button>
-                      )}
-                    </div>
-                  </motion.div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           {/* 大师分析结果 */}
-          {analysis && (
+          {analysis && !showLoadingAnimation && (
             <motion.div 
               ref={analysisRef}
               className="p-4"

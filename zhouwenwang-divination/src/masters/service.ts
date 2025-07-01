@@ -20,6 +20,10 @@ import {
 
 // 🚀 流式响应控制开关 - 在这里修改即可控制全局行为
 const ENABLE_STREAMING = false; // true: 使用SSE流式API, false: 使用标准API+前端模拟流式效果
+
+// 📝 字数控制参数 - 在这里修改即可控制全局字数限制
+const DEFAULT_WORD_LIMIT = 1200; // 默认字数限制
+
 /**
  * 从public目录加载大师配置数据
  * @returns Promise<Master[]> 大师列表
@@ -148,7 +152,7 @@ function buildPrompt(master: Master, divinationData: any, gameType?: string, use
   
   // 根据游戏类型添加特定的提示词
   if (gameType) {
-    const gamePrompt = getGameSpecificPrompt(master, gameType);
+    const gamePrompt = getGameSpecificPrompt(master, gameType, userInfo);
     if (gamePrompt) {
       prompt += '\n\n' + gamePrompt;
     }
@@ -182,43 +186,6 @@ function buildPrompt(master: Master, divinationData: any, gameType?: string, use
     prompt += '\n\n**格式要求**：\n- 必须使用Markdown格式输出\n- 使用合适的标题层级（##、###、####）\n- 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用\n- 使用项目符号和编号列表组织内容\n- 语言要体现你的风格特色，分析要深入透彻，建议要实用可行';
   }
   
-  // 添加游戏特定的格式要求
-  if (gameType) {
-    switch (gameType) {
-      case 'liuyao':
-        prompt += `
-
-**注意事项**：
-- 必须使用Markdown格式输出
-- 使用合适的标题层级（##、###、####）
-- 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用
-- 使用项目符号和编号列表组织内容
-- 语言要体现你的风格特色，分析要深入透彻，建议要实用可行
-- 回复需控制在800字以内，重点突出，避免冗余`;
-        break;
-      
-      case 'qimen':
-        prompt += `
-
-**分析结构要求**：
-1. **局面概况**：简要描述当前奇门局的整体特征
-2. **用神分析**：详细分析用神所在宫位的状况
-3. **吉凶判断**：根据格局给出明确的吉凶判断
-4. **时机把握**：分析最佳行动时机
-5. **具体建议**：给出针对性的实用建议
-
-**注意事项**：
-- 必须使用Markdown格式输出
-- 语言要体现你的风格特色
-- 分析要条理清晰，建议要切实可行
-- 回复需控制在700字以内`;
-        break;
-    }
-  }
-  
-  // 在prompt最后再次强调语言约束
-  prompt += '\n\n**最终提醒**：整个回复过程中，严格使用简体中文，绝对不允许出现英文、俄文、日文等任何其他语言文字。';
-  
   return prompt;
 }
 
@@ -230,48 +197,7 @@ function buildPrompt(master: Master, divinationData: any, gameType?: string, use
  */
 function buildGamePromptFromConfig(config: GamePromptConfig, gameType: string): string {
   let prompt = config.baseRole;
-  
-  // 添加通用的图片检测逻辑（仅用于需要图片的游戏）
-  if (gameType === 'palmistry' && config.invalidImagePrompt) {
-    prompt += `\n\n请仔细观察这张图片，重点关注其中的手相部分进行分析：
-
-**分析原则**：
-- 如果图片中包含可识别的手相部分（即使同时包含其他内容），请重点分析手相部分
-- 如果图片中完全没有手相内容（如：纯风景、纯人脸照片、纯物品等），请提醒用户上传包含手相的图片
-- 如果手相部分过于模糊或不完整影响分析，可以建议用户提供更清晰的手相图片，但仍需尝试分析可见部分
-- 优先进行分析，只有在完全无法识别手相特征时才建议重新拍摄
-
-## 🤲 手相特征分析
-
-### 1. 主要纹路分析
-- **生命线**：健康状况和生命力分析
-- **智慧线**：思维能力和性格特征解读
-- **感情线**：情感状态和人际关系分析  
-- **事业线**：职业发展和成就潜力预测
-
-### 2. 手掌形状和特征
-- **手掌形状**：手掌形状对性格的影响
-- **手指特征**：手指长短和灵活度的意义
-- **掌纹特色**：手掌厚薄和纹理的含义
-
-### 3. 综合分析
-- **性格天赋**：性格特质和天赋分析
-- **发展趋势**：人生发展趋势预测
-- **改善建议**：改善建议和注意事项
-
-**格式要求**：
-- 必须使用Markdown格式输出
-- 使用合适的标题层级（##、###、####）
-- 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用
-- 使用项目符号和编号列表组织内容
-- 回复需控制在800字以内，重点突出，避免冗余
-
-${config.analysisStyle}`;
-  } else {
-    // 其他游戏类型
-    prompt += `\n\n${config.analysisStyle}`;
-  }
-  
+  prompt += `\n\n${config.analysisStyle}`;
   return prompt;
 }
 
@@ -279,25 +205,46 @@ ${config.analysisStyle}`;
  * 根据游戏类型获取特定的提示词
  * @param master 大师对象
  * @param gameType 游戏类型
+ * @param userInfo 用户信息，用于判断是否有问事
  * @returns 游戏特定的提示词，如果没有则返回null
  */
-function getGameSpecificPrompt(master: Master, gameType: string): string | null {
+function getGameSpecificPrompt(master: Master, gameType: string, userInfo?: any): string | null {
   const extendedMaster = master as ExtendedMaster;
   
-  // 如果大师配置了游戏专用提示词，使用配置文件
-  if (extendedMaster.gamePrompts && extendedMaster.gamePrompts[gameType]) {
-    return buildGamePromptFromConfig(extendedMaster.gamePrompts[gameType], gameType);
-  }
-  
-  // 降级到硬编码提示词（为了向后兼容）
-  const gamePrompts: Record<string, string> = {
-    'liuyao': getLiuYaoPrompt(master),
-    'qimen': getQiMenPrompt(master),
-    'palmistry': getPalmistryPrompt(master),
-    'zhougong': getZhouGongPrompt(master)
+  // 获取固定的业务格式模板
+  const gamePrompts: Record<string, () => string> = {
+    'liuyao': () => getLiuYaoPrompt(master),
+    'qimen': () => getQiMenPrompt(master),
+    'bazi': () => {
+      // 检查是否有问事内容
+      const hasQuestion = userInfo && typeof userInfo === 'object' && 
+        userInfo.question && typeof userInfo.question === 'string' && 
+        userInfo.question.trim().length > 0;
+      return getBaZiPrompt(master, hasQuestion);
+    },
+    'palmistry': () => getPalmistryPrompt(master),
+    'zhougong': () => getZhouGongPrompt(master)
   };
   
-  return gamePrompts[gameType] || null;
+  const promptGenerator = gamePrompts[gameType];
+  if (!promptGenerator) {
+    return null;
+  }
+  
+  // 获取基础的业务提示词
+  let basePrompt = promptGenerator();
+  
+  // 如果大师配置了游戏专用的个性化提示词，则与业务模板结合
+  if (extendedMaster.gamePrompts && extendedMaster.gamePrompts[gameType]) {
+    const personalizedPrompt = buildGamePromptFromConfig(extendedMaster.gamePrompts[gameType], gameType);
+    // 将个性化信息插入到基础提示词之前
+    basePrompt = basePrompt.replace(
+      `你是${master.name}。`,
+      personalizedPrompt + '\n\n'
+    );
+  }
+  
+  return basePrompt;
 }
 
 /**
@@ -306,7 +253,7 @@ function getGameSpecificPrompt(master: Master, gameType: string): string | null 
  * @returns 六爻提示词
  */
 function getLiuYaoPrompt(master: Master): string {
-  const basePrompt = `请按照以下格式解读用户的六爻卦象（控制在800字以内）：
+  const basePrompt = `请按照以下格式解读用户的六爻卦象（控制在${DEFAULT_WORD_LIMIT}字以内）：
 
 ## 🔮 六爻卦象解读
 
@@ -335,7 +282,7 @@ function getLiuYaoPrompt(master: Master): string {
 - 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用
 - 使用项目符号和编号列表组织内容
 - 语言要体现你的风格特色，分析要深入透彻，建议要实用可行
-- 回复需控制在800字以内，重点突出，避免冗余`;
+- 回复需控制在${DEFAULT_WORD_LIMIT}字以内，重点突出，避免冗余`;
 
   // 使用统一的配置系统，优先从gamePrompts获取，降级到硬编码
   return `你是${master.name}。${basePrompt}请结合你的专长进行六爻分析。`;
@@ -347,7 +294,7 @@ function getLiuYaoPrompt(master: Master): string {
  * @returns 奇门遁甲提示词
  */
 function getQiMenPrompt(master: Master): string {
-  const basePrompt = `请详细分析奇门遁甲盘局（控制在800字以内）：
+  const basePrompt = `请详细分析奇门遁甲盘局（控制在${DEFAULT_WORD_LIMIT}字以内）：
 
 ## ⚡ 奇门遁甲盘局分析
 
@@ -375,10 +322,77 @@ function getQiMenPrompt(master: Master): string {
 - 使用合适的标题层级（##、###、####）
 - 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用
 - 使用项目符号和编号列表组织内容
-- 回复需控制在800字以内，重点突出，避免冗余`;
+- 回复需控制在${DEFAULT_WORD_LIMIT}字以内，重点突出，避免冗余`;
 
-  // 使用统一的配置系统，优先从gamePrompts获取，降级到硬编码
   return `你是${master.name}。${basePrompt}请结合你的专长进行奇门遁甲分析。`;
+}
+
+/**
+ * 获取八字推命的特定提示词
+ * @param master 大师对象
+ * @param hasQuestion 是否有具体问事
+ * @returns 八字推命提示词
+ */
+function getBaZiPrompt(master: Master, hasQuestion: boolean = false): string {
+  const wordLimit = hasQuestion ? DEFAULT_WORD_LIMIT + 200 : DEFAULT_WORD_LIMIT;
+  const sections = hasQuestion ? 5 : 4;
+  
+  let basePrompt = `请按照以下格式解读用户的八字命盘（控制在${wordLimit}字以内）：
+
+## 🔯 八字推命解析
+
+### 1. 命格总论
+- **四柱格局**：分析年月日时四柱的整体格局特征
+- **五行平衡**：解读五行配置及其对人生的影响
+- **命理特征**：概述主要的命理特征和人生格局
+
+### 2. 性格天赋
+- **性格特质**：基于日干和四柱组合分析性格特点
+- **行为模式**：解读个人的行为模式和心理特征
+- **天赋优势**：分析个人天赋和发展优势
+
+### 3. 人生运势
+- **事业财运**：分析适合的职业方向和财运特征
+- **感情婚姻**：解读感情观念和婚姻运势
+- **健康状况**：基于五行分析体质和健康注意事项
+
+### 4. 开运指导
+- **五行调理**：提供五行平衡的调理建议
+- **风水方位**：给出有利的方位和颜色建议
+- **生活指导**：提供具体的生活和发展指导`;
+
+  // 只有在有问事时才添加针对性分析
+  if (hasQuestion) {
+    basePrompt += `
+
+### 5. 问事分析
+- **具体问事**：针对用户的具体问题进行深入分析
+- **时机把握**：分析问事相关的最佳时机和行动建议
+- **注意事项**：提醒需要注意的问题和规避建议
+- **解决方案**：提供实际可行的解决方案和策略
+
+### 6. 总结
+- **核心要点**：简明扼要地总结八字命理的核心要点
+- **人生指导**：给出最终的人生发展指导方向`;
+  } else {
+    basePrompt += `
+
+### 5. 总结
+- **核心要点**：简明扼要地总结八字命理的核心要点
+- **人生指导**：给出最终的人生发展指导方向`;
+  }
+
+  basePrompt += `
+
+**注意事项**：
+- 必须使用Markdown格式输出
+- 使用合适的标题层级（##、###、####）
+- 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用
+- 使用项目符号和编号列表组织内容
+- 语言要体现你的风格特色，分析要深入透彻，建议要实用可行
+- 回复需控制在${wordLimit}字以内，重点突出，避免冗余`;
+
+  return `你是${master.name}。${basePrompt}请结合你的专长进行八字推命分析。`;
 }
 
 /**
@@ -387,7 +401,7 @@ function getQiMenPrompt(master: Master): string {
  * @returns 周公解梦提示词
  */
 function getZhouGongPrompt(master: Master): string {
-  const basePrompt = `请按照以下格式解读用户的梦境（控制在800字以内）：
+  const basePrompt = `请按照以下格式解读用户的梦境（控制在${DEFAULT_WORD_LIMIT}字以内）：
 
 ## 🌙 周公解梦分析
 
@@ -421,7 +435,7 @@ function getZhouGongPrompt(master: Master): string {
 - 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用
 - 使用项目符号和编号列表组织内容
 - 语言要体现你的风格特色，分析要深入透彻，建议要实用可行
-- 回复需控制在800字以内，重点突出，避免冗余
+- 回复需控制在${DEFAULT_WORD_LIMIT}字以内，重点突出，避免冗余
 - 结合传统周公解梦理论和现代心理学观点进行分析
 - 梦境分析要从象征意义、心理暗示、现实指导三个层面展开`;
 
@@ -466,7 +480,7 @@ function getPalmistryPrompt(master: Master): string {
 - 使用合适的标题层级（##、###、####）
 - 仅在关键结论和核心要点处谨慎使用**粗体**标记，避免过度使用
 - 使用项目符号和编号列表组织内容
-- 回复需控制在800字以内，重点突出，避免冗余`;
+- 回复需控制在${DEFAULT_WORD_LIMIT}字以内，重点突出，避免冗余`;
 
   // 简化为降级方案，优先使用配置文件
   return `你是${master.name}。${basePrompt}请结合你的专长进行手相分析。`;

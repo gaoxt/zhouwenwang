@@ -87,10 +87,10 @@ const PalmistryPage: React.FC = () => {
         throw new Error('请选择图片文件');
       }
 
-          // 验证文件大小 (1MB)
-    const maxSize = 1 * 1024 * 1024;
+          // 验证文件大小 (2MB)
+    const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
-      throw new Error('图片文件大小不能超过1MB');
+      throw new Error('图片文件大小不能超过2MB');
     }
 
       // 转换为base64
@@ -314,7 +314,7 @@ const PalmistryPage: React.FC = () => {
                         {dragOver ? '释放以上传图片' : '上传手相图片'}
                       </p>
                       <p className="text-brand-gray-300">
-                        支持 JPG、PNG、WEBP 格式，文件大小不超过1MB
+                        支持 JPG、PNG、WEBP 格式，文件大小不超过2M
                       </p>
                     </div>
                   </div>

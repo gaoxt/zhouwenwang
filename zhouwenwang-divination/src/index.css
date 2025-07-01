@@ -173,3 +173,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
 html {
   color-scheme: dark !important;
 }
+
+/* 五行能量条闪光动画 */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

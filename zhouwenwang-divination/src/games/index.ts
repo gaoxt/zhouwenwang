@@ -1,4 +1,4 @@
-import { Coins, Grid3X3, Hand, Moon } from 'lucide-react';
+import { Coins, Grid3X3, Hand, Moon, Calendar } from 'lucide-react';
 import type { Game } from '../types';
 import { useAppStore } from '../core/store';
 
@@ -7,6 +7,7 @@ import LiuYaoPage from './liuyao/LiuYaoPage';
 import QiMenPage from './qimen/QiMenPage';
 import PalmistryPage from './palmistry/PalmistryPage';
 import ZhouGongPage from './zhougong/ZhouGongPage';
+import BaZiPage from './bazi/BaZiPage';
 
 /**
  * 获取当前选中的大师信息
@@ -99,6 +100,28 @@ const games: Game[] = [
       const currentMaster = getCurrentMaster();
       return {
         type: 'zhougong',
+        timestamp: Date.now(),
+        master: currentMaster ? {
+          id: currentMaster.id,
+          name: currentMaster.name,
+          description: currentMaster.description
+        } : null,
+        data: null
+      };
+    }
+  },
+  {
+    id: 'bazi',
+    name: '八字推命',
+    path: '/bazi',
+    component: BaZiPage,
+    icon: Calendar,
+    description: '通过生辰八字，推算个人命理运势，解读人生轨迹与性格特征',
+    order: 5,
+    generateData: () => {
+      const currentMaster = getCurrentMaster();
+      return {
+        type: 'bazi',
         timestamp: Date.now(),
         master: currentMaster ? {
           id: currentMaster.id,

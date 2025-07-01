@@ -64,8 +64,8 @@ export const GEMINI_CONFIG = {
   FILE_CONFIG: {
     // 支持的图像格式
     SUPPORTED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-    // 最大文件大小（1MB）
-    MAX_FILE_SIZE: 1 * 1024 * 1024,
+    // 最大文件大小（2MB）
+    MAX_FILE_SIZE: 2 * 1024 * 1024,
   }
 } as const;
 
