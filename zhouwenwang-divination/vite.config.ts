@@ -57,8 +57,9 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // 生产环境移除console.log
-        drop_debugger: true
+        // 只在生产环境移除console.log
+        drop_console: process.env.NODE_ENV === 'production',
+        drop_debugger: process.env.NODE_ENV === 'production'
       }
     },
     // 启用CSS代码分割
@@ -71,7 +72,7 @@ export default defineConfig({
   // 开发环境性能优化
   esbuild: {
     logOverride: { 'this-is-undefined-in-esm': 'silent' },
-    // 生产环境移除所有console和debugger
-    drop: ['console', 'debugger']
+    // 只在生产环境移除所有console和debugger
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
   }
 })

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { generateHexagram, binaryToHexagramName, getYaoSymbol, getHexagramStructure, type LiuYaoResult } from './logic';
+import { Clock } from 'lucide-react';
+import { generateHexagram, HEXAGRAM_NAMES, type LiuYaoResult } from './logic';
 import { getAIAnalysisStream } from '../../masters/service';
 import { useMaster, useUI } from '../../core/store';
 import { addRecord } from '../../core/history';
@@ -19,6 +20,8 @@ const LiuYaoPage = () => {
   const [isDivining, setIsDivining] = useState(false);
   const [quickQuestions, setQuickQuestions] = useState<string[]>([]);
   const [videoLoaded, setVideoLoaded] = useState(true); // 视频加载状态
+  const [selectedTime, setSelectedTime] = useState<Date>(new Date());
+  const [useCurrentTime, setUseCurrentTime] = useState(true);
 
   const { selectedMaster } = useMaster();
   const { error, setError } = useUI();
@@ -79,6 +82,35 @@ const LiuYaoPage = () => {
     }
   };
 
+  // 获取八卦结构信息
+  const getHexagramStructure = (hexagramData: { yaos: number[] }) => {
+    // 八卦名称对应表
+    const trigramNames: { [key: string]: { name: string; nature: string } } = {
+      '111': { name: '乾', nature: '天' },
+      '000': { name: '坤', nature: '地' },
+      '100': { name: '震', nature: '雷' },
+      '011': { name: '巽', nature: '风' },
+      '010': { name: '坎', nature: '水' },
+      '101': { name: '离', nature: '火' },
+      '001': { name: '艮', nature: '山' },
+      '110': { name: '兑', nature: '泽' }
+    };
+
+    // 将爻值转换为二进制（阳爻=1，阴爻=0）
+    const toBinary = (yaos: number[]) => {
+      return yaos.map(yao => (yao === 7 || yao === 9) ? '1' : '0').join('');
+    };
+
+    const binaryStr = toBinary(hexagramData.yaos);
+    
+    // 下卦（前三爻）
+    const lowerTrigram = trigramNames[binaryStr.slice(0, 3)] || { name: '未知', nature: '未知' };
+    // 上卦（后三爻）
+    const upperTrigram = trigramNames[binaryStr.slice(3, 6)] || { name: '未知', nature: '未知' };
+
+    return { upperTrigram, lowerTrigram };
+  };
+
   /**
    * 快速开始占卜
    */
@@ -109,7 +141,8 @@ const LiuYaoPage = () => {
     
     // 模拟摇卦动画时间
     setTimeout(() => {
-      const hexagramResult = generateHexagram();
+      const targetTime = useCurrentTime ? new Date() : selectedTime;
+      const hexagramResult = generateHexagram(targetTime);
       setResult(hexagramResult);
       setIsDivining(false);
     }, 3000); // 3秒动画时间
@@ -126,27 +159,13 @@ const LiuYaoPage = () => {
    * 生成测试卦象（确保有阴爻）
    */
   const generateTestHexagram = () => {
+    // 使用正常的生成逻辑，但重新调用一次以生成新的卦象
+    const testResult = generateHexagram();
+    
     // 清除之前的分析状态
     setAnalysis('');
     setAnalyzing(false);
     setAnalysisComplete(false);
-    
-    // 手动创建一个包含阴爻和阳爻的测试卦象
-    const testResult: LiuYaoResult = {
-      yaos: [
-        { value: 8, changing: false, type: 'yin', change: 'static' },    // 初六
-        { value: 7, changing: false, type: 'yang', change: 'static' },   // 九二
-        { value: 6, changing: true, type: 'yin', change: 'changing' },   // 六三 (变爻)
-        { value: 9, changing: true, type: 'yang', change: 'changing' },  // 九四 (变爻)
-        { value: 8, changing: false, type: 'yin', change: 'static' },    // 六五
-        { value: 7, changing: false, type: 'yang', change: 'static' }    // 上九
-      ],
-      originalHexagram: '101010',
-      changedHexagram: '110011',
-      hasChangingLines: true,
-      changingPositions: [3, 4],
-      timestamp: Date.now()
-    };
     
     setResult(testResult);
   };
@@ -176,27 +195,33 @@ const LiuYaoPage = () => {
     setAnalysis(''); // 清空之前的分析结果
 
     try {
-      // 构建占卜数据，包含用户问题
+      // 构建占卜数据，包含用户问题和起卦时间
       const divinationData = {
         type: 'liuyao',
         question: question.trim(),
-        originalHexagram: binaryToHexagramName(result.originalHexagram),
-        changedHexagram: result.changedHexagram ? binaryToHexagramName(result.changedHexagram) : null,
-        yaos: result.yaos.map((yao, index) => {
+        originalHexagram: result.originalHexagram.name,
+        changedHexagram: result.changedHexagram ? result.changedHexagram.name : null,
+        yaos: result.originalHexagram.yaos.map((yaoValue, index) => {
           const position = index + 1;
+          const yaoType = result.originalHexagram.yaoTypes[index];
+          const isMoving = result.movingLines.includes(position);
+          const yaoTypeValue = yaoType.includes('阳') ? 'yang' : 'yin';
           
           return {
             position: position,
-            name: getCorrectYaoName(position, yao.type), // 使用统一的爻名生成函数
-            value: yao.value,
-            type: yao.type,
-            changing: yao.changing,
-            symbol: getYaoSymbol(yao)
+            name: getCorrectYaoName(position, yaoTypeValue),
+            value: yaoValue,
+            type: yaoTypeValue,
+            changing: isMoving,
+            symbol: result.originalHexagram.symbols[index]
           };
         }),
-        changingPositions: result.changingPositions,
-        hasChangingLines: result.hasChangingLines,
-        timestamp: result.timestamp
+        movingLines: result.movingLines,
+        hasChangingLines: result.movingLines.length > 0,
+        timestamp: result.timestamp,
+        divinationTime: result.divinationTime,
+        worldYao: result.worldYao,
+        responseYao: result.responseYao
       };
 
       // 使用流式分析，实时更新结果
@@ -305,6 +330,45 @@ const LiuYaoPage = () => {
                     '开始摇卦'
                   )}
                 </motion.button>
+              </div>
+
+              {/* 时间选择区域 */}
+              <div className="flex justify-center items-center gap-6 mb-6">
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-[#FF9900]" />
+                  <span className="text-white font-medium">起卦时间：</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={useCurrentTime}
+                      onChange={() => setUseCurrentTime(true)}
+                      className="form-radio text-[#FF9900] focus:ring-[#FF9900] bg-[#222222] border-[#333333]"
+                      disabled={isDivining}
+                    />
+                    <span className="text-[#CCCCCC]">当前时间</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      checked={!useCurrentTime}
+                      onChange={() => setUseCurrentTime(false)}
+                      className="form-radio text-[#FF9900] focus:ring-[#FF9900] bg-[#222222] border-[#333333]"
+                      disabled={isDivining}
+                    />
+                    <span className="text-[#CCCCCC]">自选时间</span>
+                  </label>
+                </div>
+                {!useCurrentTime && (
+                  <input
+                    type="datetime-local"
+                    value={selectedTime.toISOString().slice(0, 16)}
+                    onChange={(e) => setSelectedTime(new Date(e.target.value))}
+                    className="px-3 py-2 bg-[#222222] border border-[#333333] rounded-lg text-white focus:border-[#FF9900] focus:outline-none transition-all duration-300"
+                    disabled={isDivining}
+                  />
+                )}
               </div>
 
               {/* 快速开始水平布局 - 居中 */}
@@ -445,7 +509,7 @@ const LiuYaoPage = () => {
                             marginRight: '20px'
                           }}
                         >
-                          {binaryToHexagramName(result.originalHexagram)}
+                          {result.originalHexagram.name}
                         </h3>
                         
                         {/* 卦象结构描述 - 精致标签样式 */}
@@ -487,14 +551,32 @@ const LiuYaoPage = () => {
                           </div>
                         </div>
                       </div>
+                      
+                      {/* 起卦时间信息 */}
+                      <div className="mt-3 text-sm text-[#888888]">
+                        <div className="flex items-center justify-center gap-4">
+                          {result.divinationTime && (
+                            <>
+                              <span>起卦时间：{result.divinationTime.year}年 {result.divinationTime.month}月 {result.divinationTime.day}日 {result.divinationTime.hour}时</span>
+                              <span>•</span>
+                            </>
+                          )}
+                          <span>世爻：{result.worldYao}爻</span>
+                          <span>•</span>
+                          <span>应爻：{result.responseYao}爻</span>
+                        </div>
+                      </div>
                     </div>
 
                     {/* 六爻显示 - 占用主要空间 */}
                     <div className="flex-1 overflow-hidden" style={{ paddingTop: '8px' }}>
-                      {result.yaos.slice().reverse().map((yao, index) => {
+                      {result.originalHexagram.yaos.slice().reverse().map((yaoValue, index) => {
                         const position = 6 - index;
+                        const yaoType = result.originalHexagram.yaoTypes[5 - index];
+                        const isMoving = result.movingLines.includes(position);
+                        const yaoTypeValue = yaoType.includes('阳') ? 'yang' : 'yin';
                         // 根据爻的阴阳性质和位置生成正确的名称
-                        const positionName = getCorrectYaoName(position, yao.type);
+                        const positionName = getCorrectYaoName(position, yaoTypeValue);
                         
                         return (
                           <motion.div 
@@ -530,14 +612,14 @@ const LiuYaoPage = () => {
                             
                             {/* 爻的条形显示 */}
                             <div className="flex-1" style={{ minWidth: '200px' }}>
-                              {yao.type === 'yang' ? (
+                              {yaoTypeValue === 'yang' ? (
                                 // 阳爻 - 完整的橙色长条
                                 <div 
                                   className="h-6 w-full rounded shadow-lg"
                                   style={{ 
                                     minHeight: '24px', 
-                                    backgroundColor: yao.changing ? '#fbbf24' : '#f59e0b',
-                                    boxShadow: yao.changing 
+                                    backgroundColor: isMoving ? '#fbbf24' : '#f59e0b',
+                                    boxShadow: isMoving 
                                       ? '0 4px 12px rgba(251, 191, 36, 0.4)' 
                                       : '0 4px 12px rgba(245, 158, 11, 0.4)'
                                   }}
@@ -549,9 +631,9 @@ const LiuYaoPage = () => {
                                     className="h-6 rounded shadow-lg"
                                     style={{ 
                                       minHeight: '24px', 
-                                      backgroundColor: yao.changing ? '#9ca3af' : '#6b7280',
+                                      backgroundColor: isMoving ? '#9ca3af' : '#6b7280',
                                       width: '42%',
-                                      boxShadow: yao.changing 
+                                      boxShadow: isMoving 
                                         ? '0 4px 12px rgba(156, 163, 175, 0.3)' 
                                         : '0 4px 12px rgba(107, 114, 128, 0.3)'
                                     }}
@@ -560,9 +642,9 @@ const LiuYaoPage = () => {
                                     className="h-6 rounded shadow-lg"
                                     style={{ 
                                       minHeight: '24px', 
-                                      backgroundColor: yao.changing ? '#9ca3af' : '#6b7280',
+                                      backgroundColor: isMoving ? '#9ca3af' : '#6b7280',
                                       width: '42%',
-                                      boxShadow: yao.changing 
+                                      boxShadow: isMoving 
                                         ? '0 4px 12px rgba(156, 163, 175, 0.3)' 
                                         : '0 4px 12px rgba(107, 114, 128, 0.3)'
                                     }}
@@ -573,20 +655,20 @@ const LiuYaoPage = () => {
                             
                             {/* 变爻标记列 - 增强视觉效果 */}
                             <div className="w-12 flex justify-center" style={{ marginLeft: '20px' }}>
-                              {yao.changing ? (
+                              {isMoving ? (
                                 <span 
                                   style={{ 
                                     fontSize: '28px',
                                     fontWeight: '900',
-                                    color: yao.type === 'yang' ? '#FCD34D' : '#E5E7EB',
-                                    textShadow: yao.type === 'yang' 
+                                    color: yaoTypeValue === 'yang' ? '#FCD34D' : '#E5E7EB',
+                                    textShadow: yaoTypeValue === 'yang' 
                                       ? '0 0 12px rgba(252, 211, 77, 0.8), 0 0 20px rgba(252, 211, 77, 0.4)' 
                                       : '0 0 12px rgba(229, 231, 235, 0.8), 0 0 20px rgba(229, 231, 235, 0.4)',
                                     filter: 'drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4))',
                                     animation: 'pulse 2s infinite'
                                   }}
                                 >
-                                  {yao.type === 'yang' ? '○' : '×'}
+                                  {yaoTypeValue === 'yang' ? '○' : '×'}
                                 </span>
                               ) : (
                                 <span className="text-2xl text-transparent">○</span>
@@ -655,7 +737,7 @@ const LiuYaoPage = () => {
             <motion.div 
               ref={analysisRef}
               className="p-4"
-              style={{ marginTop: '12rem' }}
+              style={{ marginTop: '14rem' }}
               variants={itemVariants}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

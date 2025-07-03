@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUI, useMaster } from '../core/store';
 import { motion } from 'framer-motion';
-import { Star, Sparkles, Brain, Eye, Crown, Lightbulb, Compass, BookOpen, Hand, Music, MessageCircle, Smile } from 'lucide-react';
+import { Star, Sparkles, Brain, Eye, Crown, Lightbulb, Compass, BookOpen, Hand, Music, MessageCircle, Smile, Shield } from 'lucide-react';
 import { getAllGames } from '../games';
 import { fetchMasters, getDefaultMaster } from '../masters/service';
 import type { Master } from '../types';
@@ -324,16 +324,16 @@ const HomePage: React.FC = () => {
             variants={itemVariants}
           >
             <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-[#FF9900]" />
+              <span>本地隐私保护</span>
+            </div>
+            <div className="flex items-center gap-2">
               <Brain className="w-5 h-5 text-[#FF9900]" />
               <span>AI智能分析</span>
             </div>
             <div className="flex items-center gap-2">
               <Star className="w-5 h-5 text-[#FF9900]" />
-              <span>传统易学</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-[#FF9900]" />
-              <span>精准预测</span>
+              <span>传统易学智慧</span>
             </div>
           </motion.div>
         </motion.div>

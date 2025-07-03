@@ -5,22 +5,20 @@
 
 // 导出核心逻辑
 export {
-  generateYao,
   generateHexagram,
-  tossCoin,
-  binaryToHexagramName,
-  getYaoSymbol,
-  getYaoName,
-  isValidYao,
-  isValidHexagram,
-  YAO_VALUES,
-  COIN_VALUES
+  generatePlumBlossomHexagram,
+  formatHexagram,
+  getMovingLinesDescription,
+  getDivinationTimeDescription,
+  HEXAGRAM_NAMES,
+  YAO_TYPES
 } from './logic';
 
 // 导出类型定义
 export type {
-  YaoInfo,
-  LiuYaoResult
+  LiuYaoResult,
+  CoinDivination,
+  PlumBlossomDivination
 } from './logic';
 
 // 导出页面组件
