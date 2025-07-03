@@ -1,10 +1,11 @@
 /**
  * 跑马灯通知组件
- * 参考ErrorToast的定位方式，每分钟请求一次接口获取消息
+ * 参考ErrorToast的定位方式，使用指数退避策略请求接口获取消息
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { getDefaultServerUrl } from '../../utils/url';
 
 interface MarqueeData {
   enabled: boolean;
@@ -21,15 +22,18 @@ interface MarqueeNotificationProps {
  * 跑马灯通知组件
  */
 export const MarqueeNotification: React.FC<MarqueeNotificationProps> = ({ 
-  apiBaseUrl = 'http://localhost:3001' 
+  apiBaseUrl = getDefaultServerUrl() 
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [message, setMessage] = useState('');
   const [isAnimating, setIsAnimating] = useState(false);
+  const [requestCount, setRequestCount] = useState(0);
 
   // 获取跑马灯数据
   const fetchMarqueeData = useCallback(async () => {
     try {
+      console.log(`第${requestCount + 1}次请求跑马灯数据`);
+      
       const response = await fetch(`${apiBaseUrl}/api/marquee`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -51,19 +55,31 @@ export const MarqueeNotification: React.FC<MarqueeNotificationProps> = ({
         }, 20000);
       }
     } catch (error) {
-      console.warn('获取跑马灯数据失败:', error);
+      console.warn(`第${requestCount + 1}次获取跑马灯数据失败:`, error);
       // 静默失败，不显示错误
     }
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, requestCount]);
 
-  // 设置定时器：每分钟请求一次（首次加载不请求）
+  // 设置指数退避定时器：1分钟->2分钟->4分钟->8分钟...，最多请求10次
   useEffect(() => {
+    if (requestCount >= 10) {
+      console.log('已达到最大请求次数限制，停止请求跑马灯数据');
+      return;
+    }
+
+    // 计算延迟时间：第1次1分钟，第2次2分钟，第3次4分钟...
+    const delayMinutes = Math.pow(2, requestCount);
+    const delayMs = delayMinutes * 60 * 1000; // 转换为毫秒
     
-    // 设置每分钟执行一次的定时器
-    const interval = setInterval(fetchMarqueeData, 60000); // 60秒 = 1分钟
+    console.log(`将在${delayMinutes}分钟后进行第${requestCount + 1}次跑马灯请求`);
     
-    return () => clearInterval(interval);
-  }, [fetchMarqueeData]);
+    const timer = setTimeout(() => {
+      fetchMarqueeData();
+      setRequestCount(prev => prev + 1);
+    }, delayMs);
+    
+    return () => clearTimeout(timer);
+  }, [fetchMarqueeData, requestCount]);
 
   return (
     <AnimatePresence>

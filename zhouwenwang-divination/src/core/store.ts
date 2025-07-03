@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Master, Settings } from '../types';
 import type { StorageResult } from './types';
 import { saveSettings } from './settings';
+import { getDefaultServerUrl } from '../utils/url';
 
 /**
  * 应用设置状态切片
@@ -60,7 +61,7 @@ type AppStore = SettingsSlice & UISlice & MasterSlice & GameSlice;
 const defaultSettings: Settings = {
   apiKey: '',
   sidebarCollapsed: false,
-  serverUrl: "http://10.10.9.123:3001",
+  serverUrl: getDefaultServerUrl(),
 };
 
 /**

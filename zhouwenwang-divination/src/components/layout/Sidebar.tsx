@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -11,6 +11,7 @@ import {
 import { getAllGames } from '../../games';
 import { useSettings, useUI } from '../../core/store';
 import { SettingsModal } from '../common/SettingsModal';
+import { preloadComponent, preloadAllGames } from '../../utils/preload';
 
 interface SidebarProps {
   className?: string;
@@ -22,6 +23,7 @@ interface NavItemProps {
   label: string;
   isCollapsed: boolean;
   isActive: boolean;
+  preloadKey?: string;
 }
 
 interface SettingsItemProps {
@@ -32,11 +34,29 @@ interface SettingsItemProps {
   onClick: () => void;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, isActive }) => {
+const NavItem: React.FC<NavItemProps> = ({ to, icon, label, isCollapsed, isActive, preloadKey }) => {
   const { clearError } = useUI();
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  
+  // 在鼠标悬停时预加载组件
+  useEffect(() => {
+    if (preloadKey && linkRef.current) {
+      const handleMouseEnter = () => {
+        preloadComponent(preloadKey as any);
+      };
+      
+      const element = linkRef.current;
+      element.addEventListener('mouseenter', handleMouseEnter, { once: true });
+      
+      return () => {
+        element.removeEventListener('mouseenter', handleMouseEnter);
+      };
+    }
+  }, [preloadKey]);
   
   return (
     <Link
+      ref={linkRef}
       to={to}
       onClick={() => clearError()} // 点击导航项时清除错误
       className={`
@@ -137,15 +157,47 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
   // 设置弹窗状态
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
+  // 路径到预加载键的映射
+  const getPreloadKey = (path: string) => {
+    const pathMap: Record<string, string> = {
+      '/liuyao': 'liuyao',
+      '/qimen': 'qimen',
+      '/bazi': 'bazi',
+      '/palmistry': 'palmistry',
+      '/zhougong': 'zhougong',
+      '/masters': 'masters'
+    };
+    return pathMap[path];
+  };
+
   // 构建导航项：首页 + 动态游戏列表
   const navItems = [
-    { to: '/', icon: <Home size={20} />, label: '首页' },
+    { to: '/', icon: <Home size={20} />, label: '首页', preloadKey: undefined },
     ...games.map(game => ({
       to: game.path,
       icon: game.icon ? <game.icon size={20} /> : <Home size={20} />,
-      label: game.name
+      label: game.name,
+      preloadKey: getPreloadKey(game.path)
     }))
   ];
+
+  // 在组件挂载后预加载关键组件
+  useEffect(() => {
+    // 延迟2秒后在空闲时间预加载所有游戏组件
+    const timer = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          preloadAllGames();
+        });
+      } else {
+        setTimeout(() => {
+          preloadAllGames();
+        }, 100);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <>
@@ -212,6 +264,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className }) => {
                 label={item.label}
                 isCollapsed={isCollapsed}
                 isActive={location.pathname === item.to}
+                preloadKey={item.preloadKey}
               />
             </motion.div>
           ))}

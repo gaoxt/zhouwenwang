@@ -12,6 +12,7 @@ import { getStorageInfo } from '../../core/storage';
 import { MasterSelector } from '../../masters/MasterSelector';
 import { API_CONFIG, hasValidApiKey, isValidApiKeyFormat } from '../../masters/config';
 import { validateGeminiApiKey } from '../../masters/service';
+import { getDefaultServerUrl } from '../../utils/url';
 import { 
   baseStyles, 
   presetStyles, 
@@ -37,7 +38,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   
   // 本地状态
   const [apiKey, setApiKey] = useState(settings.apiKey);
-  const [serverUrl, setServerUrl] = useState(settings.serverUrl || 'http://10.10.9.123:3001');
+  const [serverUrl, setServerUrl] = useState(settings.serverUrl || getDefaultServerUrl());
   const [isLoading, setIsLoading] = useState(false);
   const [isTestingServer, setIsTestingServer] = useState(false);
   const [isTestingApiKey, setIsTestingApiKey] = useState(false);
@@ -50,7 +51,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // 当设置变化时更新本地状态
   useEffect(() => {
     setApiKey(settings.apiKey);
-    setServerUrl(settings.serverUrl || 'http://10.10.9.123:3001');
+    setServerUrl(settings.serverUrl || getDefaultServerUrl());
     setStorageInfo(getStorageInfo());
   }, [settings.apiKey, settings.serverUrl]);
 
@@ -444,7 +445,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       type="url"
                       value={serverUrl}
                       onChange={(e) => setServerUrl(e.target.value)}
-                      placeholder="http://localhost:3001"
+                      placeholder={getDefaultServerUrl()}
                       {...presetStyles.inputWithEffects()}
                     />
                     <button

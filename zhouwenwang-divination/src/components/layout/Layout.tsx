@@ -2,9 +2,10 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import MainContent from './MainContent';
-import { MarqueeNotification, GitHubLink } from '../common';
+import { MarqueeNotification, GitHubLink, MobileDetector } from '../common';
 import { useSettings, useMaster, useUI, useStore } from '../../core/store';
 import { fetchMasters, getDefaultMaster } from '../../masters/service';
+import { getDefaultServerUrl } from '../../utils/url';
 
 const Layout: React.FC = () => {
   const { settings } = useSettings();
@@ -26,7 +27,7 @@ const Layout: React.FC = () => {
         try {
           console.log('初始化默认服务器URL设置...');
           await updateSettings({ 
-            serverUrl: 'http://10.10.9.123:3001'
+            serverUrl: getDefaultServerUrl()
           });
           console.log('默认服务器URL已设置');
         } catch (error) {
@@ -78,6 +79,9 @@ const Layout: React.FC = () => {
 
   return (
     <div className="bg-black min-h-screen">
+      {/* 移动端检测组件 - 最高优先级 */}
+      <MobileDetector />
+      
       {/* 跑马灯通知 - 全局覆盖 */}
       <MarqueeNotification apiBaseUrl={settings.serverUrl} />
       

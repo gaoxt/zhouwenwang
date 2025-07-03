@@ -8,6 +8,7 @@ import type { StorageResult } from './types';
 import { StorageKeys } from './types';
 import { getItem, setItem, clearAllAppData } from './storage';
 import { forceCleanAllHistory } from './history';
+import { getDefaultServerUrl } from '../utils/url';
 
 /**
  * 默认设置配置
@@ -15,7 +16,7 @@ import { forceCleanAllHistory } from './history';
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: '',
   sidebarCollapsed: false,
-  serverUrl: 'http://10.10.9.123:3001',
+  serverUrl: getDefaultServerUrl(),
 };
 
 /**
