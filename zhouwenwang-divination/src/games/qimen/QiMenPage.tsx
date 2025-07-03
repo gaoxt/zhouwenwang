@@ -777,10 +777,10 @@ const QiMenPage = () => {
                         className={`w-full px-4 py-3 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg flex items-center justify-center ${
                           isAnalyzing || !selectedMaster || analysisComplete
                             ? 'bg-[#444444] cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30'
+                            : 'bg-gradient-to-r from-[#FF9900] to-[#E68A00] hover:from-[#E68A00] hover:to-[#CC7700] hover:shadow-xl hover:shadow-[#FF9900]/30'
                         }`}
                         style={{
-                          color: '#ffffff'
+                          color: isAnalyzing || !selectedMaster || analysisComplete ? '#888888' : '#000000'
                         }}
                         whileHover={!isAnalyzing && selectedMaster && !analysisComplete ? { scale: 1.02 } : {}}
                         whileTap={!isAnalyzing && selectedMaster && !analysisComplete ? { scale: 0.98 } : {}}
@@ -788,18 +788,18 @@ const QiMenPage = () => {
                         {isAnalyzing ? (
                           <span 
                             className="flex items-center justify-center gap-3"
-                            style={{ color: '#ffffff' }}
+                            style={{ color: '#888888' }}
                           >
                             <div 
                               className="animate-spin rounded-full h-4 w-4 border-b-2"
-                              style={{ borderColor: '#ffffff' }}
+                              style={{ borderColor: '#888888' }}
                             ></div>
-                            <span style={{ color: '#ffffff' }}>
+                            <span style={{ color: '#888888' }}>
                               {aiAnalysis ? `${selectedMaster?.name}正在分析...` : `${selectedMaster?.name}解盘中...`}
                             </span>
                           </span>
                         ) : (
-                          <span style={{ color: '#ffffff' }}>
+                          <span style={{ color: isAnalyzing || !selectedMaster || analysisComplete ? '#888888' : '#000000' }}>
                             {analysisComplete ? `${selectedMaster?.name}解盘完成` : '大师解盘'}
                           </span>
                         )}
@@ -808,7 +808,7 @@ const QiMenPage = () => {
                       {!selectedMaster && (
                         <motion.button 
                           onClick={() => navigate('/settings')}
-                          className="w-full mt-2 bg-green-600 text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all duration-300 shadow-lg flex items-center justify-center"
+                          className="w-full mt-2 bg-gradient-to-r from-[#FF9900] to-[#E68A00] text-black px-4 py-3 rounded-xl font-bold text-sm hover:from-[#E68A00] hover:to-[#CC7700] transition-all duration-300 shadow-lg hover:shadow-[#FF9900]/30 flex items-center justify-center"
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                         >

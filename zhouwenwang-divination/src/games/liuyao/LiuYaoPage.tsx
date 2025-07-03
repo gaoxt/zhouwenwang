@@ -687,10 +687,10 @@ const LiuYaoPage = () => {
                         className={`w-full px-4 py-3 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg ${
                           analyzing || !selectedMaster || analysisComplete
                             ? 'bg-[#444444] cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30'
+                            : 'bg-gradient-to-r from-[#FF9900] to-[#E68A00] hover:from-[#E68A00] hover:to-[#CC7700] hover:shadow-xl hover:shadow-[#FF9900]/30'
                         }`}
                         style={{
-                          color: '#ffffff'
+                          color: analyzing || !selectedMaster || analysisComplete ? '#888888' : '#000000'
                         }}
                         whileHover={!analyzing && selectedMaster && !analysisComplete ? { scale: 1.02 } : {}}
                         whileTap={!analyzing && selectedMaster && !analysisComplete ? { scale: 0.98 } : {}}
@@ -698,18 +698,18 @@ const LiuYaoPage = () => {
                         {analyzing ? (
                           <span 
                             className="flex items-center justify-center gap-3"
-                            style={{ color: '#ffffff' }}
+                            style={{ color: '#888888' }}
                           >
                             <div 
                               className="animate-spin rounded-full h-4 w-4 border-b-2"
-                              style={{ borderColor: '#ffffff' }}
+                              style={{ borderColor: '#888888' }}
                             ></div>
-                            <span style={{ color: '#ffffff' }}>
+                            <span style={{ color: '#888888' }}>
                               {analysis ? `${selectedMaster?.name}正在分析...` : `${selectedMaster?.name}解卦中...`}
                             </span>
                           </span>
                         ) : (
-                          <span style={{ color: '#ffffff' }}>
+                          <span style={{ color: analyzing || !selectedMaster || analysisComplete ? '#888888' : '#000000' }}>
                             {analysisComplete ? `${selectedMaster?.name}解卦完成` : '大师解卦'}
                           </span>
                         )}
@@ -718,7 +718,7 @@ const LiuYaoPage = () => {
                       {!selectedMaster && (
                         <motion.button 
                           onClick={() => navigate('/settings')}
-                          className="w-full mt-2 bg-green-600 text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all duration-300 shadow-lg"
+                          className="w-full mt-2 bg-gradient-to-r from-[#FF9900] to-[#E68A00] text-black px-4 py-3 rounded-xl font-bold text-sm hover:from-[#E68A00] hover:to-[#CC7700] transition-all duration-300 shadow-lg hover:shadow-[#FF9900]/30"
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                         >

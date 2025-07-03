@@ -240,7 +240,7 @@ const ZhouGongPage = () => {
               <div className="flex justify-center mt-4">
                 <motion.button 
                   onClick={() => navigate('/settings')}
-                  className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-green-700 transition-all duration-300 shadow-lg"
+                  className="bg-gradient-to-r from-[#FF9900] to-[#E68A00] text-black px-6 py-3 rounded-xl font-bold text-sm hover:from-[#E68A00] hover:to-[#CC7700] transition-all duration-300 shadow-lg hover:shadow-[#FF9900]/30"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
