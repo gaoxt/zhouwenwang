@@ -349,6 +349,55 @@ export const PALMISTRY_PROMPT_TEMPLATE: GamePromptTemplate = {
 };
 
 /**
+ * 人生K线提示词模板
+ */
+export const LIFEKLINE_PROMPT_TEMPLATE: GamePromptTemplate = {
+  gameType: 'lifekline',
+  baseWordLimit: DEFAULT_WORD_LIMIT,
+  extraWords: 200,
+  template: (master: Master) => {
+    const wordLimit = LIFEKLINE_PROMPT_TEMPLATE.baseWordLimit + (LIFEKLINE_PROMPT_TEMPLATE.extraWords || 0);
+    
+    return `请按照专业八字命理技法，为用户生成人生100年流年运势分析，并量化评分（控制在${wordLimit}字以内）：
+
+## 📈 人生K线流年运势分析
+
+### 核心要求
+请为用户的**100年人生**（从出生到100岁）生成运势数据，**每5年一个数据点**（共20个关键年份），评分标准：
+- **评分范围**：0-100分
+- **基础分**：50分（平运）
+- **评分依据**：流年干支与命局的生克关系、大运影响
+
+### 输出格式（重要）
+请按照以下JSON格式输出，**只包含每5年的关键年份**（1, 6, 11, 16, 21...96岁）：
+\`\`\`json
+{
+  "years": [
+    {"age": 1, "year": 2000, "yearGanZhi": "庚辰", "daYun": "甲子", "score": 65, "summary": "平"},
+    {"age": 6, "year": 2005, "yearGanZhi": "乙酉", "daYun": "甲子", "score": 72, "summary": "吉"},
+    ...
+  ],
+  "summary": {
+    "averageScore": 68,
+    "bestYears": [25, 35, 45],
+    "worstYears": [18, 28],
+    "overallTrend": "早年平稳，中年上升，晚年回落"
+  }
+}
+\`\`\`
+
+**要求**：
+- 只输出每5年的数据点（共20个年份），不要输出100个年份
+- 每个年份只包含：age, year, yearGanZhi, daYun, score, summary（不要analysis字段）
+- 年份计算要准确（从出生年份开始）
+- 必须输出完整的JSON格式
+- 回复控制在${wordLimit}字以内
+
+你是${master.name}，八字推命大师。请生成简化版的人生K线运势数据。`;
+  }
+};
+
+/**
  * 游戏提示词模板映射表
  */
 export const GAME_PROMPT_TEMPLATES: Record<string, GamePromptTemplate> = {
@@ -357,6 +406,7 @@ export const GAME_PROMPT_TEMPLATES: Record<string, GamePromptTemplate> = {
   'bazi': BAZI_PROMPT_TEMPLATE,
   'zhougong': ZHOUGONG_PROMPT_TEMPLATE,
   'palmistry': PALMISTRY_PROMPT_TEMPLATE,
+  'lifekline': LIFEKLINE_PROMPT_TEMPLATE,
 };
 
 /**

@@ -125,8 +125,9 @@ app.use(logger);
 const GEMINI_CONFIG = {
   BASE_URL: 'https://generativelanguage.googleapis.com/v1beta/models',
   MODELS: {
-    PRIMARY: 'gemini-2.5-flash-lite-preview-06-17',
+    PRIMARY: 'gemini-3-pro-preview',
     VISION: 'gemini-2.5-flash-lite-preview-06-17',
+    IMAGE_GENERATION: 'gemini-2.0-flash-preview-image-generation',
     FALLBACK: 'gemini-2.0-flash-lite-001'
   },
   GENERATION_CONFIG: {
@@ -138,6 +139,10 @@ const GEMINI_CONFIG = {
     stopSequences: [],
     // 候选响应数量  
     candidateCount: 1,
+    // 思考配置 - 降低思考级别以减少token消耗
+    thinkingConfig: {
+      thinkingLevel: 'LOW'
+    }
   }
 };
 
@@ -181,7 +186,7 @@ const errorHandler = (error, req, res, next) => {
 
 // 跑马灯配置存储（实际项目中应使用数据库）
 let marqueeConfig = {
-  enabled: true,
+  enabled: false,
   messages: [
     "大师观天象，见你与我有缘！投25号一票，结下仙缘，福运自来！",
     "天机不可泄露，唯有有缘人可知。投25号，助我一臂之力，必有回报！",
@@ -244,7 +249,8 @@ app.post('/api/gemini/stream', async (req, res) => {
       }],
       generationConfig: {
         ...GEMINI_CONFIG.GENERATION_CONFIG,
-        maxOutputTokens: maxTokens
+        maxOutputTokens: maxTokens,
+        thinkingConfig: GEMINI_CONFIG.GENERATION_CONFIG.thinkingConfig // 确保使用 LOW 级别
       }
     };
 
@@ -421,7 +427,12 @@ app.post('/api/gemini/generate', async (req, res) => {
     }
 
     const selectedModel = model || GEMINI_CONFIG.MODELS.PRIMARY;
-    const config = { ...GEMINI_CONFIG.GENERATION_CONFIG, ...generationConfig };
+    // 确保 thinkingConfig 始终使用 LOW 级别（即使客户端传递了其他值）
+    const config = { 
+      ...GEMINI_CONFIG.GENERATION_CONFIG, 
+      ...generationConfig,
+      thinkingConfig: GEMINI_CONFIG.GENERATION_CONFIG.thinkingConfig // 强制使用全局配置
+    };
     
     const geminiUrl = buildGeminiApiUrl(selectedModel);
     
@@ -433,7 +444,7 @@ app.post('/api/gemini/generate', async (req, res) => {
       headers: {
         'Content-Type': 'application/json'
       },
-      timeout: 30000
+      timeout: 120000 // 增加到120秒，因为人生K线等复杂请求需要生成大量数据
     });
 
     res.json(response.data);
@@ -452,7 +463,12 @@ app.post('/api/gemini/vision', upload.single('image'), async (req, res) => {
     }
 
     const selectedModel = model || GEMINI_CONFIG.MODELS.VISION;
-    const config = { ...GEMINI_CONFIG.GENERATION_CONFIG, ...generationConfig };
+    // 确保 thinkingConfig 始终使用 LOW 级别
+    const config = { 
+      ...GEMINI_CONFIG.GENERATION_CONFIG, 
+      ...generationConfig,
+      thinkingConfig: GEMINI_CONFIG.GENERATION_CONFIG.thinkingConfig // 强制使用全局配置
+    };
     
     const geminiUrl = buildGeminiApiUrl(selectedModel);
     
@@ -483,7 +499,12 @@ app.post('/api/gemini/vision-stream', upload.single('image'), async (req, res) =
     }
 
     const selectedModel = model || GEMINI_CONFIG.MODELS.VISION;
-    const config = { ...GEMINI_CONFIG.GENERATION_CONFIG, ...generationConfig };
+    // 确保 thinkingConfig 始终使用 LOW 级别
+    const config = { 
+      ...GEMINI_CONFIG.GENERATION_CONFIG, 
+      ...generationConfig,
+      thinkingConfig: GEMINI_CONFIG.GENERATION_CONFIG.thinkingConfig // 强制使用全局配置
+    };
     
     const geminiUrl = buildGeminiApiUrl(selectedModel, 'streamGenerateContent');
     
@@ -685,6 +706,96 @@ app.get('/api/validate', async (req, res) => {
   }
 });
 
+// 6.5. 模型生成测试（实际调用模型生成内容）
+app.get('/api/test-model', async (req, res) => {
+  try {
+    const { model } = req.query;
+    const selectedModel = model || GEMINI_CONFIG.MODELS.PRIMARY;
+    const apiKey = validateApiKey();
+    
+    console.log(`[${getChinaTime()}] 🧪 开始测试模型: ${selectedModel}`);
+    
+    // 构建测试请求
+    const testPrompt = '请用一句话回答：1+1等于几？';
+    const geminiUrl = buildGeminiApiUrl(selectedModel);
+    
+    const response = await axios.post(geminiUrl, {
+      contents: [{
+        role: 'user',
+        parts: [{ text: testPrompt }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 500, // 增加token限制，避免思考token占用导致输出为空
+        thinkingConfig: {
+          thinkingLevel: 'LOW' // 降低思考级别，减少思考token消耗
+        }
+      }
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 15000
+    });
+    
+    // 解析响应
+    if (!response.data.candidates || response.data.candidates.length === 0) {
+      throw new Error('模型未返回有效响应');
+    }
+    
+    const candidate = response.data.candidates[0];
+    
+    // 尝试多种方式获取响应文本
+    let generatedText = '';
+    if (candidate.content?.parts) {
+      // 查找文本类型的part
+      const textPart = candidate.content.parts.find(part => part.text);
+      if (textPart) {
+        generatedText = textPart.text;
+      }
+    }
+    
+    // 如果还是没有，尝试直接访问
+    if (!generatedText && candidate.content?.parts?.[0]?.text) {
+      generatedText = candidate.content.parts[0].text;
+    }
+    
+    // 如果仍然为空，记录详细信息用于调试
+    if (!generatedText) {
+      console.warn('⚠️ 响应文本为空，完整响应结构:', JSON.stringify(candidate, null, 2));
+    }
+    
+    res.json({
+      success: true,
+      model: selectedModel,
+      testPrompt: testPrompt,
+      response: generatedText || '(响应为空，可能是token限制导致)',
+      finishReason: candidate.finishReason,
+      usage: response.data.usageMetadata,
+      warning: !generatedText ? '响应文本为空，finishReason: ' + candidate.finishReason : undefined,
+      message: generatedText ? '模型测试成功' : '模型响应成功但文本为空'
+    });
+    
+    console.log(`[${getChinaTime()}] ✅ 模型测试成功: ${selectedModel}`);
+    
+  } catch (error) {
+    console.error(`[${getChinaTime()}] ❌ 模型测试失败:`, error.message);
+    
+    const errorDetails = error.response?.data?.error || {};
+    res.status(error.response?.status || 500).json({
+      success: false,
+      model: req.query.model || GEMINI_CONFIG.MODELS.PRIMARY,
+      configured: !!process.env.GEMINI_API_KEY,
+      message: error.message || '模型测试失败',
+      error: {
+        code: errorDetails.code || 'UNKNOWN_ERROR',
+        message: errorDetails.message || error.message,
+        status: error.response?.status
+      }
+    });
+  }
+});
+
 // 7. 跑马灯消息接口
 app.get('/api/marquee', (req, res) => {
   try {
@@ -716,6 +827,59 @@ app.get('/api/marquee', (req, res) => {
       enabled: false,
       message: '',
       error: '获取跑马灯消息失败'
+    });
+  }
+});
+
+// 8. 图生图接口（秦时明月头像生成）
+app.post('/api/gemini/image-generation', async (req, res) => {
+  try {
+    const { contents, generationConfig } = req.body;
+    
+    if (!contents || !Array.isArray(contents)) {
+      return res.status(400).json({ error: 'contents 参数是必需的且必须为数组' });
+    }
+
+    // 使用支持图像生成的模型
+    const imageGenModel = GEMINI_CONFIG.MODELS.IMAGE_GENERATION;
+    // 确保 thinkingConfig 始终使用 LOW 级别
+    const config = { 
+      ...GEMINI_CONFIG.GENERATION_CONFIG, 
+      ...generationConfig,
+      thinkingConfig: GEMINI_CONFIG.GENERATION_CONFIG.thinkingConfig, // 强制使用全局配置
+      response_modalities: ["TEXT", "IMAGE"]
+    };
+    
+    const geminiUrl = buildGeminiApiUrl(imageGenModel);
+    
+    console.log(`[${getChinaTime()}] 🎨 开始图像生成请求 - 模型: ${imageGenModel}`);
+    
+    const response = await axios.post(geminiUrl, {
+      contents,
+      generationConfig: config
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 120000 // 图像生成需要更长时间
+    });
+
+    console.log(`[${getChinaTime()}] ✅ 图像生成成功`);
+    res.json(response.data);
+  } catch (error) {
+    console.error(`[${getChinaTime()}] ❌ 图像生成失败:`, error.message);
+    
+    if (error.response?.data?.error) {
+      const geminiError = error.response.data.error;
+      return res.status(error.response.status || 500).json({
+        error: geminiError.message || '图像生成失败',
+        code: geminiError.code || 'IMAGE_GENERATION_ERROR'
+      });
+    }
+    
+    res.status(500).json({
+      error: error.message || '图像生成服务器错误',
+      code: 'INTERNAL_ERROR'
     });
   }
 });
@@ -752,7 +916,9 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('  POST /api/gemini/generate - 标准文本生成');
   console.log('  POST /api/gemini/vision   - 图像分析');
   console.log('  POST /api/gemini/vision-stream - 流式图像分析');
+  console.log('  POST /api/gemini/image-generation - 🎨 图像生成');
   console.log('  GET  /api/validate        - API密钥验证');
+  console.log('  GET  /api/test-model      - 🧪 模型生成测试（实际调用模型）');
   console.log('  GET  /api/marquee         - 🎯 跑马灯消息');
   console.log('\n');
 }); 

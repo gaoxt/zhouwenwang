@@ -55,6 +55,8 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
     setStorageInfo(getStorageInfo());
   }, [settings.apiKey, settings.serverUrl]);
 
+
+
   // 清除消息
   const clearMessages = () => {
     setError(null);
@@ -530,6 +532,68 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             {/* 数据管理标签页 */}
             {activeTab === 'data' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* 存储空间信息 */}
+                <div style={baseStyles.card()}>
+                  <h4 style={textStyles.sectionTitle}>
+                    <Settings className="h-4 w-4" style={{ color: colors.primary }} />
+                    <span>存储空间使用</span>
+                  </h4>
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      <span style={{ color: colors.gray[300], fontSize: '14px' }}>
+                        已使用空间
+                      </span>
+                      <span style={{ 
+                        color: storageInfo.percentage > 80 ? colors.error : colors.gray[300], 
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}>
+                        {Math.round(storageInfo.used / 1024)} KB / {Math.round(storageInfo.total / 1024)} KB ({storageInfo.percentage}%)
+                      </span>
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: '8px',
+                      backgroundColor: colors.gray[700],
+                      borderRadius: '4px',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        width: `${Math.min(storageInfo.percentage, 100)}%`,
+                        height: '100%',
+                        backgroundColor: storageInfo.percentage > 80 ? colors.error : 
+                                       storageInfo.percentage > 60 ? '#F59E0B' : colors.primary,
+                        transition: 'all 0.3s ease'
+                      }} />
+                    </div>
+                    {storageInfo.percentage > 80 && (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: '6px',
+                        color: '#FCA5A5',
+                        fontSize: '13px'
+                      }}>
+                        ⚠️ 存储空间即将用完，建议清理历史记录
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setStorageInfo(getStorageInfo())}
+                    {...presetStyles.buttonWithHover('secondary', false, { width: '100%' })}
+                  >
+                    <Settings className="h-4 w-4" />
+                    <span>刷新存储信息</span>
+                  </button>
+                </div>
+
                 {/* 导出占卜记录 */}
                 <div style={baseStyles.card()}>
                   <h4 style={textStyles.sectionTitle}>

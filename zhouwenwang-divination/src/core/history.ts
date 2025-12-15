@@ -146,6 +146,8 @@ export async function clearHistory(type?: string): Promise<void> {
   }
 }
 
+
+
 /**
  * 强制清除所有历史记录（包括兼容旧版本的键名）
  * @returns 清除结果

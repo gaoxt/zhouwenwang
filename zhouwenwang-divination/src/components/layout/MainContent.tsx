@@ -14,6 +14,8 @@ const QiMenPage = lazy(() => import('../../games/qimen/QiMenPage'));
 const BaZiPage = lazy(() => import('../../games/bazi/BaZiPage'));
 const PalmistryPage = lazy(() => import('../../games/palmistry/PalmistryPage'));
 const ZhouGongPage = lazy(() => import('../../games/zhougong/ZhouGongPage'));
+const LifeKlinePage = lazy(() => import('../../games/lifekline/LifeKlinePage'));
+const QinShiPage = lazy(() => import('../../games/qinshi/QinShiPage'));
 
 // 加载中组件
 const LoadingSpinner = () => (
@@ -83,6 +85,8 @@ const MainContent: React.FC<MainContentProps> = ({ isCollapsed }) => {
                     <Route path="/bazi" element={<BaZiPage />} />
                     <Route path="/palmistry" element={<PalmistryPage />} />
                     <Route path="/zhougong" element={<ZhouGongPage />} />
+                    <Route path="/lifekline" element={<LifeKlinePage />} />
+                    {/* <Route path="/qinshi" element={<QinShiPage />} /> */}
                   </Routes>
                 </motion.div>
               </AnimatePresence>

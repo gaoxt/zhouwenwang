@@ -1437,4 +1437,171 @@ export function convertImageToBase64(file: File): Promise<{base64: string, mimeT
     // 读取文件为data URL
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * 图像生成响应接口
+ */
+interface GeminiImageGenerationResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{
+        text?: string;
+        inline_data?: {
+          mime_type: string;
+          data: string;
+        };
+        inlineData?: {  // 添加驼峰命名支持
+          mimeType: string;
+          data: string;
+        };
+      }>;
+    };
+  }>;
+}
+
+/**
+ * 服务器图像生成标准分析
+ * @param serverUrl 服务器URL
+ * @param imageBase64 Base64编码的图像数据
+ * @param mimeType 图像MIME类型
+ * @param prompt 生成提示词
+ * @returns Promise<string> 生成的图像Base64数据URL
+ */
+async function getServerImageGenerationStandard(
+  serverUrl: string,
+  imageBase64: string,
+  mimeType: string,
+  prompt: string
+): Promise<string> {
+  const requestBody = {
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          { text: prompt },
+          {
+            inline_data: {
+              mime_type: mimeType,
+              data: imageBase64
+            }
+          }
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.8,
+      maxOutputTokens: 1024,
+      response_modalities: ["TEXT", "IMAGE"]
+    }
+  };
+
+  const response = await fetch(`${serverUrl.replace(/\/$/, '')}/api/gemini/image-generation`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestBody)
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+    throw new Error(errorData.error || '图像生成失败');
+  }
+
+  const data: GeminiImageGenerationResponse = await response.json();
+  
+  if (!data.candidates || data.candidates.length === 0) {
+    throw new Error('服务器未返回有效的图像生成数据');
+  }
+  
+  const candidate = data.candidates[0];
+  
+  if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+    throw new Error('服务器返回数据格式错误');
+  }
+  
+  // 查找包含图像数据的部分
+  const imagePart = candidate.content.parts.find(part => part.inline_data || part.inlineData);
+  if (!imagePart || (!imagePart.inline_data && !imagePart.inlineData)) {
+    throw new Error('未能生成图像，请重试');
+  }
+  
+  // 支持两种格式的图像数据
+  let imageMimeType: string;
+  let imageDataBase64: string;
+  
+  if (imagePart.inline_data) {
+    imageMimeType = imagePart.inline_data.mime_type;
+    imageDataBase64 = imagePart.inline_data.data;
+  } else if (imagePart.inlineData) {
+    imageMimeType = imagePart.inlineData.mimeType;
+    imageDataBase64 = imagePart.inlineData.data;
+  } else {
+    throw new Error('未能解析图像数据格式');
+  }
+  
+  // 构建完整的数据URL
+  const generatedImageUrl = `data:${imageMimeType};base64,${imageDataBase64}`;
+  
+  return generatedImageUrl;
+}
+
+/**
+ * 图像生成处理 - 支持后端服务器和降级处理
+ * @param imageBase64 Base64编码的图像数据
+ * @param mimeType 图像MIME类型
+ * @param prompt 生成提示词
+ * @returns Promise<string> 生成的图像Base64数据URL
+ */
+export async function getImageGeneration(
+  imageBase64: string,
+  mimeType: string,
+  prompt: string
+): Promise<string> {
+  try {
+    console.log('开始图像生成...');
+    
+    // 1. 获取设置
+    const state = useAppStore.getState();
+    const { apiKey, serverUrl } = state.settings;
+    
+    // 2. 如果配置了服务器URL，优先使用后端服务器
+    if (serverUrl && serverUrl.trim()) {
+      
+      try {
+        // 检查服务器健康状态
+        const isServerHealthy = await checkServerHealth(serverUrl);
+        
+        if (isServerHealthy) {
+          console.log('后端服务器健康检查通过，使用服务器图像生成API...');
+          return await getServerImageGenerationStandard(serverUrl, imageBase64, mimeType, prompt);
+        } else {
+          console.warn('后端服务器健康检查失败，降级到直接API调用');
+        }
+      } catch (serverError) {
+        console.warn('后端服务器图像生成调用失败，降级到直接API调用:', serverError);
+      }
+    }
+    
+    // 3. 降级到直接API调用（如果需要的话，这里可以实现直接调用Gemini API）
+    console.log('图像生成需要后端服务器支持');
+    
+    // 检查API密钥和服务器状态
+    if (!serverUrl || !serverUrl.trim()) {
+      throw new Error('图像生成功能需要配置后端服务器地址。请在设置中配置服务器URL。');
+    } else {
+      throw new Error('后端服务器不可用，图像生成功能暂时无法使用。请检查服务器状态。');
+    }
+    
+  } catch (error) {
+    console.error('图像生成失败:', error);
+    
+    // 重新抛出错误，让调用者处理
+    if (error instanceof Error) {
+      throw error;
+    } else {
+      throw new Error('图像生成失败，请重试');
+    }
+  }
 } 

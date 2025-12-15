@@ -75,6 +75,8 @@ export interface Game {
   description?: string;
   /** 游戏排序权重 */
   order?: number;
+  /** 是否隐藏该游戏（可选） */
+  hidden?: boolean;
 }
 
 /**

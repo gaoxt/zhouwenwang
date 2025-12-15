@@ -20,11 +20,11 @@ export const GEMINI_CONFIG = {
   // 模型配置
   MODELS: {
     // 主要模型 - 用于文本生成和分析
-    PRIMARY: 'gemini-2.5-flash-lite-preview-06-17',
+    PRIMARY: 'gemini-3-pro-preview',
     // 视觉模型 - 用于图像分析（手相等）
     VISION: 'gemini-2.5-flash-lite-preview-06-17',
     // 备用模型（如果主模型不可用）
-    FALLBACK: 'gemini-2.0-flash-lite-001'
+    FALLBACK: 'gemini-2.5-pro'
   },
   
   // API 端点配置
