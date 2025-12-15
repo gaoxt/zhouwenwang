@@ -17,7 +17,14 @@
 <table>
   <tr>
     <td align="center">
-      <img src="zhouwenwang-divination/public/img/k1.png" alt="人生K线图界面1" width="800"/>
+      <img src="zhouwenwang-divination/public/img/palmistry.png" alt="手相分析界面" width="400"/>
+      <br/>
+      <b>✋ 手相分析</b>
+      <br/>
+      <sub>AI驱动的手相识别分析，深度解读手纹命理</sub>
+    </td>
+    <td align="center">
+      <img src="zhouwenwang-divination/public/img/k1.png" alt="人生K线图界面1" width="400"/>
       <br/>
       <b>📊 人生K线图 - 运势分析</b>
       <br/>
@@ -25,7 +32,7 @@
     </td>
   </tr>
   <tr>
-    <td align="center">
+    <td align="center" colspan="2">
       <img src="zhouwenwang-divination/public/img/k2.png" alt="人生K线图界面2" width="800"/>
       <br/>
       <b>📊 人生K线图 - 详细解读</b>
