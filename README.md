@@ -17,43 +17,20 @@
 <table>
   <tr>
     <td align="center">
-      <img src="zhouwenwang-divination/public/img/home.png" alt="主页界面" width="400"/>
+      <img src="zhouwenwang-divination/public/img/k1.png" alt="人生K线图界面1" width="800"/>
       <br/>
-      <b>🏠 主页界面</b>
-      <br/>
-      <sub>简洁优雅的主页设计，提供多种占卜方式选择</sub>
-    </td>
-    <td align="center">
-      <img src="zhouwenwang-divination/public/img/liuyao.png" alt="六爻占卜界面" width="400"/>
-      <br/>
-      <b>🔮 六爻占卜</b>
-      <br/>
-      <sub>传统六爻占卜，包含摇卦动画和详细解读</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="zhouwenwang-divination/public/img/qimen.png" alt="奇门遁甲界面" width="400"/>
-      <br/>
-      <b>⭐ 奇门遁甲</b>
-      <br/>
-      <sub>专业奇门遁甲分析，提供时局预测和策略建议</sub>
-    </td>
-    <td align="center">
-      <img src="zhouwenwang-divination/public/img/palmistry.png" alt="手相分析界面" width="400"/>
-      <br/>
-      <b>✋ 手相分析</b>
-      <br/>
-      <sub>AI驱动的手相识别分析，深度解读手纹命理</sub>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" colspan="2">
-      <img src="zhouwenwang-divination/public/k.png" alt="人生K线图界面" width="800"/>
-      <br/>
-      <b>📊 人生K线图</b>
+      <b>📊 人生K线图 - 运势分析</b>
       <br/>
       <sub>基于八字命理的100年人生运势可视化分析，量化评分系统</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="zhouwenwang-divination/public/img/k2.png" alt="人生K线图界面2" width="800"/>
+      <br/>
+      <b>📊 人生K线图 - 详细解读</b>
+      <br/>
+      <sub>AI智能分析，提供早年、中年、晚年等不同阶段的详细运势解读</sub>
     </td>
   </tr>
 </table>
