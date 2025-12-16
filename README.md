@@ -93,8 +93,14 @@
 
 ### 环境要求
 
-- Node.js 18+ 
-- npm
+- **Node.js 20+** (推荐使用 Node.js 20 LTS 或更高版本)
+- npm 10+
+
+> ⚠️ **重要提示**: 项目依赖（如 `electron@34.5.8`、`vite@6.3.5` 等）需要 Node.js 20+ 才能正常运行。使用 Node.js 18 会导致依赖安装警告和潜在的运行时兼容性问题。
+>
+> 如果当前使用的是 Node.js 18，请升级到 Node.js 20 LTS：
+> - 访问 [Node.js 官网](https://nodejs.org/) 下载安装
+> - 或使用 nvm: `nvm install 20 && nvm use 20`
 
 ### 1. 克隆项目
 
@@ -103,13 +109,23 @@ git clone <repository-url>
 cd zhouwenwang-divination
 ```
 
-### 2. 安装依赖
+### 2. 检查 Node.js 版本
+
+```bash
+node --version  # 应该显示 v20.x.x 或更高版本
+```
+
+如果版本低于 20，请先升级 Node.js。
+
+### 3. 安装依赖
 
 ```bash
 npm install
 ```
 
-### 3. 配置API密钥
+> 💡 **提示**: 如果安装过程中出现引擎兼容性警告（`npm warn EBADENGINE`），说明 Node.js 版本不符合要求，请升级到 Node.js 20+。
+
+### 4. 配置API密钥
 
 获取 Google Gemini API 密钥：
 - 访问 [Google AI Studio](https://makersuite.google.com/app/apikey)
@@ -149,7 +165,7 @@ export const API_CONFIG = {
 
 或在设置页面中输入密钥。
 
-### 4. 启动开发环境
+### 5. 启动开发环境
 
 **如果使用后端代理服务：**
 
